@@ -41,22 +41,26 @@ int main() {
     scanf(" %c", &choice1);
 
     //check for invalid input
-    while (choice1 != '1' && choice1 != '2') {
+    while (choice1 != '1' && choice1 != '2' && choice1 != 'g') {
         printf("Invalid input. Your choice: ");
         scanf(" %c", &choice1);
     }
 
     //play the original game
     if (choice1 == '1') {
-        system("clear");
+        system("cls");
         displayTitle();
         displayBoard();
     }
     //computation and analyses
-    else {
-        system("clear");
+    else if (choice1 == '2') {
+        system("cls");
         displayTitle();
         printf("Coming soon...\n");
+    }
+    //function testing
+    else if (choice1 == 'g') {
+
     }
     return 0;
 }
@@ -71,10 +75,10 @@ void displayBoard() {
         printf("\n");
     }
 
-    //dock numbers and river
+    // dock numbers and river
     printf("~");
     for (int i = 0; i < current_docks; i++) {
-        printf("~~~~~");
+        printf("~~~~~~");
     }
     printf("\n");
     printf("|");
@@ -84,7 +88,7 @@ void displayBoard() {
     printf("\n");
     printf("~");
     for (int i = 0; i < current_docks; i++) {
-        printf("~~~~~");
+        printf("~~~~~~");
     }
     printf("\n");
 
@@ -101,5 +105,5 @@ void displayBoard() {
 void displayTitle() {
     printf("-------------------\n");
     printf("River Crossing Game\n");
-    printf("-------------------\n");
+    printf("-------------------\n\n");
 }
