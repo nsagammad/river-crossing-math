@@ -10,15 +10,23 @@
 #include <stdio.h>
 #include <time.h>
 
+void displayBoard();
 void displayTitle();
 
+//global variables
 int dice = 2;
 int faces = 6;
-int max_chips = 12;
-int max_docks = 12;
+int current_chips = 12;
+int current_docks = 12;
 
 int main() {
+    //local variables
     char choice1 = '3'; //choice between playing the game or doing the calculations.
+    current_docks = dice * faces;
+    int position1[current_chips];
+    int position1docks[current_docks];
+    int position2[current_chips];
+    int position2docks[current_docks];
 
     srand(time(0));
 
@@ -42,6 +50,7 @@ int main() {
     if (choice1 == '1') {
         system("clear");
         displayTitle();
+        displayBoard();
     }
     //computation and analyses
     else {
@@ -50,6 +59,14 @@ int main() {
         printf("Coming soon...\n");
     }
     return 0;
+}
+
+void displayBoard() {
+    printf("|");
+    for (int i = 0; i < current_docks; i++) {
+        printf(" %2d |", i + 1);
+    }
+    printf("\n");
 }
 
 void displayTitle() {
