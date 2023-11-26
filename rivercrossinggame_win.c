@@ -4,29 +4,42 @@
     initial positions.
 
     Author: Nikko Gammad
+
+    TODO (26 Nov 2023): add chips to displayBoard
 */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
-void displayBoard();
+//function declarations
+void addChip(int[], int[], int);
+int countChips(int[]);
+void displayBoard(int[], int[]);
 void displayTitle();
+void gameInputChips(int[], int[]);
+void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
+int maxDock(int[]);
+void playGame(int[], int[], int[], int[]);
+void removeChip(int[], int[], int);
+
+//constants
+const int MAX_CHIPS_DOCKS = 25;
+const char DOCK_STRING[25] = "123456789ABCDEFGHIJKLMNOP"; 
+const int MODE_GAME = 0;
 
 //global variables
 int dice = 2;
 int faces = 6;
 int current_chips = 12;
 int current_docks = 12;
+int currentPlayer = 0; //0: player 1; 1: player 2
+int currentMode = MODE_GAME;
 
 int main() {
     //local variables
     char choice1 = '3'; //choice between playing the game or doing the calculations.
     current_docks = dice * faces;
-    int position1[current_chips];
-    int position1docks[current_docks];
-    int position2[current_chips];
-    int position2docks[current_docks];
 
     srand(time(0));
 
@@ -41,38 +54,117 @@ int main() {
     scanf(" %c", &choice1);
 
     //check for invalid input
-    while (choice1 != '1' && choice1 != '2' && choice1 != 'g') {
+    while (choice1 != '1' && choice1 != '2' && choice1 != 'g' && choice1 != 'x') {
         printf("Invalid input. Your choice: ");
         scanf(" %c", &choice1);
     }
 
     //play the original game
     if (choice1 == '1') {
-        system("cls");
-        displayTitle();
-        displayBoard();
+        int pos1[current_chips];
+        int pos1Docks[current_docks];
+        int pos2[current_chips];
+        int pos2Docks[current_docks];
+        int pos1Copy[current_chips];
+        int pos1CopyDocks[current_docks];
+        int pos2Copy[current_chips];
+        int pos2CopyDocks[current_docks];
+
+        initializePositions(pos1, pos1Docks, pos2, pos2Docks, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks);
+        //get both positions
+        for (int i = 0; i < current_chips * 2; i++) {
+            displayTitle();
+            displayBoard(pos1Docks, pos2Docks);
+            printf("Chip %d\n", (i / 2) + 1);
+            if (currentPlayer == 0) {
+                gameInputChips(pos1, pos1Docks);
+            }
+            else {
+                gameInputChips(pos2, pos2Docks);
+            }
+        }
+        //final board, ready to play the game
+        playGame(pos1, pos1Docks, pos2, pos2Docks);
     }
     //computation and analyses
     else if (choice1 == '2') {
-        system("cls");
         displayTitle();
         printf("Coming soon...\n");
+
+        //input dice, faces, current chips
+
+        //initialize these after input.
+        int leaderPos[current_chips]; //this holds the data for the leader position.
+        int leaderDocks[current_docks];
+        int mirrorPos[current_chips]; //holds the data for a position which mirrors the leader.
+        int mirrorDocks[current_docks];
+        int position[current_chips]; //this holds the data for the current position being checked.
+        int positionDocks[current_docks];
+        int finalPos[current_chips]; //this holds the data for the final position.
+        int finalDocks[current_docks];
+
+        initializePositions(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks);
     }
     //function testing
     else if (choice1 == 'g') {
-
+        printf("Welcome to function testing mode\n");
+        printf("Here is where I place all my function tests.\n");
+        //remember to remove this in the final version
+    }
+    else if (choice1 == 'x') {
+        printf("Exit the program\n");
     }
     return 0;
 }
 
-void displayBoard() {
-    //upper docks
-    for (int i = 0; i < 5; i++) {
-        printf("|");
-        for (int j = 0; j < current_docks; j++) {
-            printf("     |");
+//adds a chip to the dock indicated by int dock.
+//assumes that dock is valid.
+//dock counting starts at 0.
+void addChip(int pos[], int posDocks[], int dock) {
+    //add to pos. replace the first zero
+    for (int i = 0; i < current_chips; i++) {
+        if (pos[i] == 0) {
+            pos[i] = dock + 1;
+            break;
         }
-        printf("\n");
+    }
+
+    //add to posDocks. increment the dock
+    posDocks[dock]++;
+}
+
+//counts the chips in a certain position.
+int countChips(int docks[]) {
+    int count = 0;
+
+    for (int i = 0; i < current_docks; i++) {
+        count += docks[i];
+    }
+
+    return count;
+}
+
+//displays the board for the River Crossing Game.
+void displayBoard(int docks1[], int docks2[]) {
+    int maxDockChips1 = maxDock(docks1);
+    int maxDockChips2 = maxDock(docks2);
+
+    //upper docks
+    for (int i = 0; i < current_chips; i++) {
+        if (current_chips - i <= maxDockChips1) {
+            printf("|");
+        }
+        for (int j = 0; j < current_docks; j++) {
+            if (current_chips - i <= docks1[j]) {
+                printf(" (O) |");
+            }
+            else if (current_chips - i <= maxDockChips1) {
+                printf("     |");
+            }
+        }
+        if (current_chips - i <= maxDockChips1) {
+            printf("\n");
+        }
     }
 
     // dock numbers and river
@@ -93,17 +185,176 @@ void displayBoard() {
     printf("\n");
 
     //lower docks
-    for (int i = 0; i < 5; i++) {
-        printf("|");
-        for (int j = 0; j < current_docks; j++) {
-            printf("     |");
+    for (int i = 0; i < current_chips; i++) {
+        if (i + 1 <= maxDockChips2) {
+            printf("|");
         }
-        printf("\n");
+        for (int j = 0; j < current_docks; j++) {
+            if (i + 1 <= docks2[j]) {
+                printf(" (O) |");
+            }
+            else if (i + 1 <= maxDockChips2) {
+                printf("     |");
+            }
+        }
+        if (i + 1 <= maxDockChips2) {
+            printf("\n");
+        }
     }
 }
 
+//displays the title.
 void displayTitle() {
     printf("-------------------\n");
     printf("River Crossing Game\n");
     printf("-------------------\n\n");
+}
+
+//lets the user add chips to the board.
+//dock counting starts at 0.
+void gameInputChips(int pos[], int posDocks[]) {
+    int inputDock = 0;
+
+    //ask for input
+    printf("Player %d:\n", currentPlayer + 1);
+    printf("On which dock would you like your chip to be placed? ");
+    scanf(" %d", &inputDock);
+    inputDock--;
+
+    //check for invalid input
+    while (inputDock < 0 || inputDock >= current_docks) {
+        printf("Invalid dock number.\n");
+        printf("On which dock would you like your chip to be placed? ");
+        scanf(" %d", &inputDock);
+        inputDock--;
+    }
+
+    //add chips
+    addChip(pos, posDocks, inputDock);
+
+    //switch player
+    if (currentPlayer == 0) {
+        currentPlayer = 1;
+    }
+    else {
+        currentPlayer = 0;
+    }
+}
+
+//initializes the arrays for the positions and docks.
+void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int pos3[], int docks3[], int pos4[], int docks4[]) {
+    if (currentMode == MODE_GAME) { //game mode
+        //clear all positions
+        for (int i = 0; i < current_chips; i++) {
+            pos1[i] = 0;
+            pos2[i] = 0;
+            pos3[i] = 0;
+            pos4[i] = 0;
+        }
+
+        //clear all docks
+        for (int i = 0; i < current_docks; i++) {
+            docks1[i] = 0;
+            docks2[i] = 0;
+            docks3[i] = 0;
+            docks4[i] = 0;
+        }
+    }
+    else { //calculation modes
+        printf("TODO: Initialize positions for calculation modes\n");
+    }
+}
+
+//finds the dock with the most chips and returns the number of chips.
+int maxDock(int docks[]) {
+    int max = 0;
+
+    for (int i = 0; i < current_docks; i++) {
+        if (docks[i] > max) {
+            max = docks[i];
+        }
+    }
+
+    return max;
+}
+
+void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
+    char cmd = 'a';
+    int count1 = countChips(pos1Docks);
+    int count2 = countChips(pos2Docks);
+    int dice1 = 0;
+    int dice2 = 0;
+    int rolls = 0;
+
+    //play the game
+    do {
+        displayTitle();
+        displayBoard(pos1Docks, pos2Docks);
+
+        //initial prompt
+        printf("---\nWelcome to the Game!\n");
+        if (rolls > 0) {
+            //output
+            printf("The Dice rolled a %d with a %d and a %d!\n", dice1 + dice2, dice1, dice2);
+        }
+        printf("Type [r] to roll the dice: ");
+        scanf(" %c", &cmd);
+
+        //check for invalid input
+        while (cmd != 'r') {
+            printf("Invalid input. Your command: ");
+            scanf(" %c", &cmd);
+        }
+
+        if (cmd == 'r') { //roll
+            //roll the dice
+            dice1 = (rand() % faces) + 1;
+            dice2 = (rand() % faces) + 1;
+            rolls++;
+
+            //remove chip
+            removeChip(pos1, pos1Docks, dice1 + dice2 - 1);
+            removeChip(pos2, pos2Docks, dice1 + dice2 - 1);
+
+            //count chips
+            count1 = countChips(pos1Docks);
+            count2 = countChips(pos2Docks);
+        }
+    } while (count1 > 0 && count2 > 0);
+
+    displayTitle();
+    displayBoard(pos1Docks, pos2Docks);
+    //output the winner
+    if (count1 == 0 & count2 > 0) {
+        //player 1 wins
+        printf("Player 1 Wins after %d rolls!\n", rolls);
+    }
+    else if (count1 > 0 && count2 == 0) {
+        //player 2 wins
+        printf("Player 2 Wins after %d rolls!\n", rolls);
+    }
+    else if (count1 == 0 && count2 == 0) {
+        //tie game
+        printf("Tie Game after %d rolls!\n", rolls);
+    }
+}
+
+//removes a chip from a specific dock.
+//dock counting starts at 0.
+void removeChip(int pos[], int posDocks[], int dock) {
+    //find first instance of dock+1 in pos
+    for (int i = 0; i < current_chips; i++) {
+        if (pos[i] == dock + 1) {
+            for (int j = i; j < current_chips - 1; j++) {
+                pos[j] = pos[j+1];
+            }
+            pos[current_chips - 1] = 0;
+            break;
+        }
+    }
+
+    //decrement dock in posDocks
+    if (posDocks[dock] > 0) {
+        posDocks[dock]--;
+    }
 }
