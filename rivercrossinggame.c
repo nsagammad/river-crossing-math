@@ -4,8 +4,6 @@
     initial positions.
 
     Author: Nikko Gammad
-    
-    TODO (26 Nov 2023): add chips to displayBoard
 */
 
 #include <stdlib.h>
@@ -14,11 +12,15 @@
 
 //function declarations
 void addChip(int[], int[], int);
+int countChips(int[]);
 void displayBoard(int[], int[]);
 void displayTitle();
 void gameInputChips(int[], int[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
 int maxDock(int[]);
+void playGame(int[], int[], int[], int[]);
+void removeChip(int[], int[], int);
+void setupProbabilities(double[], int);
 
 //constants
 const int MAX_CHIPS_DOCKS = 25;
@@ -107,6 +109,10 @@ int main() {
         printf("Welcome to function testing mode\n");
         printf("Here is where I place all my function tests.\n");
         //remember to remove this in the final version
+
+        current_docks = 18;
+        double prob[current_docks];
+        setupProbabilities(prob, 3);
     }
     else if (choice1 == 'x') {
         printf("Exit the program\n");
@@ -294,11 +300,11 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
             //output
             printf("The Dice rolled a %d with a %d and a %d!\n", dice1 + dice2, dice1, dice2);
         }
-        printf("Type [r] to roll the dice: ");
+        printf("Type [r] to roll the dice; type [x] to exit: ");
         scanf(" %c", &cmd);
 
         //check for invalid input
-        while (cmd != 'r') {
+        while (cmd != 'r' && cmd != 'x') {
             printf("Invalid input. Your command: ");
             scanf(" %c", &cmd);
         }
@@ -317,6 +323,10 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
             count1 = countChips(pos1Docks);
             count2 = countChips(pos2Docks);
         }
+        else if (cmd == 'x') { //exit
+            count1 = -1;
+            count2 = -1;
+        }
     } while (count1 > 0 && count2 > 0);
 
     displayTitle();
@@ -333,6 +343,10 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
     else if (count1 == 0 && count2 == 0) {
         //tie game
         printf("Tie Game after %d rolls!\n", rolls);
+    }
+    else if (count1 == -1 && count2 == -1) {
+        //game ended
+        printf("Game ended after %d rolls!\n", rolls);
     }
 }
 
@@ -353,5 +367,42 @@ void removeChip(int pos[], int posDocks[], int dock) {
     //decrement dock in posDocks
     if (posDocks[dock] > 0) {
         posDocks[dock]--;
+    }
+}
+
+//sets up the probabilities array depending on the dice and faces values.
+//faces is not changed, however numDice may change to use recursion.
+void setupProbabilities(double prob[], int numDice) {
+    double probCopy[current_docks];
+
+    //initialize prob and probCopy
+    //always size of current_docks
+    for (int i = 0; i < current_docks; i++) {
+        prob[i] = 0;
+        probCopy[i] = 0;
+    }
+
+    //if one die, trivial case
+    if (numDice == 1) {
+        for (int i = 0; i < faces; i++) {
+            prob[i] = 1 / (double)faces;
+        }
+    }
+    //if more than one die, non-trivial case. use recursion
+    else if (numDice > 1) {
+        setupProbabilities(probCopy, numDice - 1);
+
+        //process values
+        for (int i = 1; i <= faces; i++) {
+            for (int j = 0; j < faces * numDice; j++) {
+                if (i + j < current_docks) {
+                    prob[i + j] += probCopy[j];
+                }
+            }
+        }
+
+        for (int i = 0; i < current_docks; i++) {
+            prob[i] /= faces;
+        }
     }
 }
