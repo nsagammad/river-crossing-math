@@ -12,13 +12,15 @@
 
 //function declarations
 void addChip(int[], int[], int);
+void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
 void displayTitle();
+double expectedDurationRecursive(int[], int[], double[]);
 void gameInputChips(int[], int[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
 int maxDock(int[]);
-void playGame(int[], int[], int[], int[]);
+void playGame(int[], int[], int[], int[], double[]);
 void removeChip(int[], int[], int);
 void setupProbabilities(double[], int);
 
@@ -30,10 +32,10 @@ const int MODE_GAME = 0;
 //global variables
 int dice = 2;
 int faces = 6;
-int current_chips = 12;
+int current_chips = 2;
 int current_docks = 12;
 int currentPlayer = 0; //0: player 1; 1: player 2
-int currentMode = MODE_GAME;
+int currentMode = 0;
 
 int main() {
     //local variables
@@ -68,8 +70,10 @@ int main() {
         int pos1CopyDocks[current_docks];
         int pos2Copy[current_chips];
         int pos2CopyDocks[current_docks];
+        double probabilities[current_docks];
 
         initializePositions(pos1, pos1Docks, pos2, pos2Docks, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks);
+        setupProbabilities(probabilities, dice);
         //get both positions
         for (int i = 0; i < current_chips * 2; i++) {
             displayTitle();
@@ -83,7 +87,7 @@ int main() {
             }
         }
         //final board, ready to play the game
-        playGame(pos1, pos1Docks, pos2, pos2Docks);
+        playGame(pos1, pos1Docks, pos2, pos2Docks, probabilities);
     }
     //computation and analyses
     else if (choice1 == '2') {
@@ -134,6 +138,19 @@ void addChip(int pos[], int posDocks[], int dock) {
 
     //add to posDocks. increment the dock
     posDocks[dock]++;
+}
+
+//copies pos and posDocks to posCopy and posCopyDocks.
+void copyPosition(int pos[], int posDocks[], int posCopy[], int posCopyDocks[]) {
+    //copy pos to posCopy
+    for (int i = 0; i < current_chips; i++) {
+        posCopy[i] = pos[i];
+    }
+
+    //copy posDocks to posCopyDocks
+    for (int i = 0; i < current_docks; i++) {
+        posCopyDocks[i] = posDocks[i];
+    }
 }
 
 //counts the chips in a certain position.
@@ -213,6 +230,60 @@ void displayTitle() {
     printf("-------------------\n\n");
 }
 
+//computes the expected duration of position pos using the recursive method.
+double expectedDurationRecursive(int pos[], int posDocks[], double prob[]) {
+    double ed = 1;
+    int count = countChips(posDocks);
+    int posCopy[current_chips];
+    int posCopyDocks[current_docks];
+    double sum_prob = 0;
+
+    //trivial cases
+    //chip on docks that are impossible to roll
+    //assign -1 to ed for the infinite ED
+    if (dice > 1) {
+        for (int i = 0; i < dice - 1; i++) {
+            if (posDocks[i] > 0) {
+                return -1;
+            }
+        }
+    }
+    //trivial cases
+    //no chips
+    if (count == 0) {
+        return 0;
+    }
+    //trivial cases
+    //one chip
+    if (count == 1) {
+        ed = 1 / prob[pos[0] - 1];
+    }
+    //non-trivial case
+    else {
+        //get the sum of probabilities
+        for (int i = 0; i < current_docks; i++) {
+            if (posDocks[i] > 0) {
+                sum_prob += prob[i];
+            }
+        }
+
+        //use recursion to get the ed of reduced position
+        for (int i = 0; i < current_docks; i++) {
+            copyPosition(pos, posDocks, posCopy, posCopyDocks);
+
+            if (posDocks[i] > 0) {
+                removeChip(posCopy, posCopyDocks, i);
+                ed += prob[i] * expectedDurationRecursive(posCopy, posCopyDocks, prob);
+            }
+        }
+
+        //divide by sum_prob
+        ed /= sum_prob;
+    }
+
+    return ed;
+}
+
 //lets the user add chips to the board.
 //dock counting starts at 0.
 void gameInputChips(int pos[], int posDocks[]) {
@@ -281,13 +352,15 @@ int maxDock(int docks[]) {
     return max;
 }
 
-void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
+void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double prob[]) {
     char cmd = 'a';
     int count1 = countChips(pos1Docks);
     int count2 = countChips(pos2Docks);
     int dice1 = 0;
     int dice2 = 0;
     int rolls = 0;
+    double ed1 = 0;
+    double ed2 = 0;
 
     //play the game
     do {
@@ -300,11 +373,17 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
             //output
             printf("The Dice rolled a %d with a %d and a %d!\n", dice1 + dice2, dice1, dice2);
         }
-        printf("Type [r] to roll the dice; type [x] to exit: ");
+        if (cmd == 'e') {
+            //output
+            printf("Expected duration for Player 1: %lf\n", ed1);
+            printf("Expected duration for Player 2: %lf\n", ed2);
+            printf("Note: a value of -1 means an infinite expected duration.\n");
+        }
+        printf("Type [r] to roll the dice; type [e] for expected duration; type [x] to exit: ");
         scanf(" %c", &cmd);
 
         //check for invalid input
-        while (cmd != 'r' && cmd != 'x') {
+        while (cmd != 'r' && cmd != 'e' && cmd != 'x') {
             printf("Invalid input. Your command: ");
             scanf(" %c", &cmd);
         }
@@ -322,6 +401,10 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
             //count chips
             count1 = countChips(pos1Docks);
             count2 = countChips(pos2Docks);
+        }
+        else if (cmd == 'e') { //expected duration
+            ed1 = expectedDurationRecursive(pos1, pos1Docks, prob);
+            ed2 = expectedDurationRecursive(pos2, pos2Docks, prob);
         }
         else if (cmd == 'x') { //exit
             count1 = -1;
