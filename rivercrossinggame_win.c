@@ -20,7 +20,9 @@ void displayTitle();
 double expectedDurationRecursive(int[], int[], double[]);
 double expectedDurationSimulation(int[], int[]);
 void gameInputChips(int[], int[]);
+void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
+void gFunctionSimulation(int[], int[], int[], int[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
 bool isSamePosition(int[], int[]);
 int maxDock(int[]);
@@ -402,6 +404,51 @@ void gameInputChips(int pos[], int posDocks[]) {
     }
 }
 
+//computes the probabilities of the game outcomes using a non-recursive method
+void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double prob[], double output[]) {
+    int count1 = countChips(pos1Docks);
+    int count2 = countChips(pos2Docks);
+    int pos1Copy[current_chips];
+    int pos1CopyDocks[current_docks];
+    int pos2Copy[current_chips];
+    int pos2CopyDocks[current_docks];
+    
+    //initialize output
+    output[0] = 0;
+    output[1] = 0;
+    output[2] = 0;
+
+    //trivial cases
+    //player 1 wins
+    if (count1 == 0 && count2 > 0) {
+        output[0] = 1;
+        output[1] = 0;
+        output[2] = 0;
+    }
+    //player 2 wins
+    else if (count1 > 0 && count2 == 0) {
+        output[0] = 0;
+        output[1] = 1;
+        output[2] = 0;
+    }
+    //tie game
+    else if (count1 == 0 && count2 == 0) {
+        output[0] = 0;
+        output[1] = 0;
+        output[2] = 1;
+    }
+    //same positions
+    else if (isSamePosition(pos1Docks, pos2Docks)) {
+        output[0] = 0;
+        output[1] = 0;
+        output[2] = 1;
+    }
+    //non-trivial case: more than one chip on one of the positions
+    else {
+        
+    }
+}
+
 //computes the probabilities of the game outcomes (g Function) for positions pos1 and pos2.
 void gFunctionRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double prob[], double output[]) {
     double gValues_sub[3];
@@ -413,7 +460,7 @@ void gFunctionRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]
     int pos2CopyDocks[current_docks];
     double sum_prob = 0;
 
-    //initialize gValues and gValues_sub
+    //initialize output and gValues_sub
     output[0] = 0;
     output[1] = 0;
     output[2] = 0;
