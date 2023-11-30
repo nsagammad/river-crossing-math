@@ -13,6 +13,7 @@
 
 //function declarations
 void addChip(int[], int[], int);
+void buildRollCombo(int[], int[], int[], int[]);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
@@ -26,6 +27,7 @@ void gFunctionSimulation(int[], int[], int[], int[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
 bool isSamePosition(int[], int[]);
 int maxDock(int[]);
+void nextRollCombo(int[]);
 void playGame(int[], int[], int[], int[], double[]);
 void removeChip(int[], int[], int);
 int rollDice();
@@ -177,6 +179,40 @@ void addChip(int pos[], int posDocks[], int dock) {
 
     //add to posDocks. increment the dock
     posDocks[dock]++;
+}
+
+//builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
+void buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[]) {
+    int idx = 0;
+    
+    //clear output
+    for (int i = 0; i < current_chips * 2; i++) {
+        output1[i] = 0;
+        output2[i] = 0;
+    }
+
+    //fill up rollCombo with chips to be cleared.
+    for (int i = 0; i < current_docks; i++) {
+        if (pos1Docks[i] > 0 || pos2Docks[i] > 0) {
+            if (pos1Docks[i] >= pos2Docks[i]) { //player 1 has more or equal chips
+                for (int j = 0; j < pos1Docks[i]; j++) {
+                    output1[idx] = i + 1;
+                    idx++;
+                }
+            }
+            else { //player 2 has more chips
+                for (int j = 0; j < pos2Docks[i]; j++) {
+                    output1[idx] = i + 1;
+                    idx++;
+                }
+            }
+        }
+    }
+
+    //fill up output2 with the reverse of output1
+    for (int i = 0; i < idx; i++) {
+        output2[i] = output1[idx - i - 1];
+    }
 }
 
 //copies pos and posDocks to posCopy and posCopyDocks.
@@ -445,7 +481,9 @@ void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Dock
     }
     //non-trivial case: more than one chip on one of the positions
     else {
-        
+        int rollCombo[current_chips * 2];
+        int finalCombo[current_chips * 2];
+        buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo);
     }
 }
 
@@ -630,6 +668,11 @@ int maxDock(int docks[]) {
     }
 
     return max;
+}
+
+//finds the next roll combo to help enumerate all possible roll combinations to clear the board.
+void nextRollCombo(int rollCombo[]) {
+
 }
 
 //plays an instance of the River Crossing Game. This assumes default settings of two dice with six faces.
