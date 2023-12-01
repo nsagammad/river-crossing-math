@@ -14,12 +14,14 @@
 //function declarations
 void addChip(int[], int[], int);
 int buildRollCombo(int[], int[], int[], int[], int[]);
+double combination(int, int);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
 void displayTitle();
 double expectedDurationRecursive(int[], int[], double[]);
 double expectedDurationSimulation(int[], int[]);
+double factorial(int);
 void gameInputChips(int[], int[]);
 void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
@@ -75,6 +77,12 @@ int dice = 2;
 int faces = 6;
 int current_chips = 4;
 int current_docks = 12;
+double maxPositions = 0;
+double middleChipPositions = 0;
+int noGapPositions = 0;
+int symmetricPositions = 0;
+int maxMiddlePositions = 0;
+int reducedPositions = 0;
 enum Player currentPlayer = PLAYER_1;
 enum Mode currentMode = MODE_GAME;
 enum Speed currentSpeed = SPEED_1;
@@ -135,9 +143,30 @@ int main() {
     //computation and analyses
     else if (choice1 == '2') {
         displayTitle();
-        printf("Coming soon...\n");
 
         //input dice, faces, current chips
+        printf("Input number of dice: ");
+        scanf(" %d", &dice);
+        printf("Input number of faces per die: ");
+        scanf(" %d", &faces);
+        current_docks = dice * faces;
+        //check for invalid input
+        while (dice <= 0 || faces <= 0 || current_docks > MAX_CHIPS_DOCKS) {
+            printf("Invalid dice information.\n");
+            printf("Input number of dice: ");
+            scanf(" %d", &dice);
+            printf("Input number of faces per die: ");
+            scanf(" %d", &faces);
+            current_docks = dice * faces;
+        }
+        printf("Input number of chips: ");
+        scanf(" %d", &current_chips);
+        //check for invalid input
+        while (current_chips <= 0 || current_chips > MAX_CHIPS_DOCKS) {
+            printf("Invalid number of chips.\n");
+            printf("Input number of chips: ");
+            scanf(" %d", &current_chips);
+        }
 
         //initialize these after input.
         int leaderPos[current_chips]; //this holds the data for the leader position.
@@ -194,6 +223,18 @@ void addChip(int pos[], int posDocks[], int dock) {
 
     //add to posDocks. increment the dock
     posDocks[dock]++;
+}
+
+//computes for the number of combinations of num1 things taken num2 at a time.
+double combination(int num1, int num2) {
+    double combi = 1;
+
+    //numerator
+    combi *= factorial(num1);
+    //denominator
+    combi /= (factorial(num1 - num2) * factorial(num2));
+
+    return combi;
 }
 
 //builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
@@ -420,6 +461,26 @@ double expectedDurationSimulation(int pos[], int posDocks[]) {
     return ed;
 }
 
+//computes for the factorial of the integer num
+double factorial(int num) {
+    double fact = 1;
+
+    //trivial case
+    if (num == 1 || num == 0) {
+        fact = 1;
+    }
+    //non-trivial case. use recursion
+    else if (num > 0) {
+        fact = (double)num * factorial(num - 1);
+    }
+    //invalid value of num
+    else {
+        printf("Invalid number\n");
+    }
+
+    return fact;
+}
+
 //lets the user add chips to the board.
 //dock counting starts at 0.
 void gameInputChips(int pos[], int posDocks[]) {
@@ -511,7 +572,7 @@ void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Dock
         int combinedDocksCopy[current_docks];
         int rollCount = buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo, combinedDocks);
 
-        do {
+        while (!isSameRollCombo(rollCombo, finalCombo)) {
             copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
             copyPosition(pos2, pos2Docks, pos2Copy, pos2CopyDocks);
 
@@ -521,7 +582,7 @@ void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Dock
 
             rollComboIteration(rollCombo, combinedDocksCopy, rollCount, pos1, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
             nextRollCombo(rollCombo, rollCount);
-        } while (!isSameRollCombo(rollCombo, finalCombo));
+        }
 
         //final rollCombo
         copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
