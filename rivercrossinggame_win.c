@@ -13,7 +13,7 @@
 
 //function declarations
 void addChip(int[], int[], int);
-int buildRollCombo(int[], int[], int[], int[]);
+int buildRollCombo(int[], int[], int[], int[], int[]);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
@@ -32,7 +32,7 @@ void nextRollCombo(int[], int);
 void playGame(int[], int[], int[], int[], double[]);
 void removeChip(int[], int[], int);
 int rollDice();
-void rollComboIteration(int[], int[], int[], int[], int[], double[]);
+void rollComboIteration(int[], int[], int, int[], int[], int[], int[], double[], double[]);
 void setupProbabilities(double[], int);
 
 //constants
@@ -157,9 +157,22 @@ int main() {
         printf("Here is where I place all my function tests.\n");
         //remember to remove this in the final version
 
-        current_docks = 18;
-        double prob[current_docks];
-        setupProbabilities(prob, 3);
+        current_chips = 4;
+        current_docks = 12;
+        int pos1[4] = {5, 6, 7, 8};
+        int pos1Docks[12] = {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
+        int pos2[4] = {5, 6, 7, 7};
+        int pos2Docks[12] = {0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0};
+        double probabilities[current_docks];
+        setupProbabilities(probabilities, dice);
+
+        double gFunction[3];
+        gFunctionRecursive(pos1, pos1Docks, pos2, pos2Docks, probabilities, gFunction);
+        printf("Recursive: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
+        gFunctionSimulation(pos1, pos1Docks, pos2, pos2Docks, gFunction);
+        printf("Simulation: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
+        gFunctionNonRecursive(pos1, pos1Docks, pos2, pos2Docks, probabilities, gFunction);
+        printf("Non-Recursive: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
     }
     else if (choice1 == 'x') {
         printf("Exit the program\n");
@@ -184,7 +197,7 @@ void addChip(int pos[], int posDocks[], int dock) {
 }
 
 //builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
-int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[]) {
+int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[], int output3[]) {
     int idx = 0;
     
     //clear output
@@ -193,9 +206,15 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
         output2[i] = 0;
     }
 
-    //fill up rollCombo with chips to be cleared.
+    for (int i = 0; i < current_docks; i++) {
+        output3[i] = 0;
+    }
+
+    //fill up output1 with chips to be cleared.
+    //fill up output3 with chips in docks.
     for (int i = 0; i < current_docks; i++) {
         if (pos1Docks[i] > 0 || pos2Docks[i] > 0) {
+            output3[i] = pos1Docks[i];
             if (pos1Docks[i] >= pos2Docks[i]) { //player 1 has more or equal chips
                 for (int j = 0; j < pos1Docks[i]; j++) {
                     output1[idx] = i + 1;
@@ -203,6 +222,7 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
                 }
             }
             else { //player 2 has more chips
+            output3[i] = pos2Docks[i];
                 for (int j = 0; j < pos2Docks[i]; j++) {
                     output1[idx] = i + 1;
                     idx++;
@@ -216,7 +236,7 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
         output2[i] = output1[idx - i - 1];
     }
 
-    return idx - 1;
+    return idx;
 }
 
 //copies pos and posDocks to posCopy and posCopyDocks.
@@ -487,15 +507,31 @@ void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Dock
     else {
         int rollCombo[current_chips * 2];
         int finalCombo[current_chips * 2];
-        int rollCount = buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo);
+        int combinedDocks[current_docks];
+        int combinedDocksCopy[current_docks];
+        int rollCount = buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo, combinedDocks);
 
-        while (!isSameRollCombo(rollCombo, finalCombo)) {
+        do {
             copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
             copyPosition(pos2, pos2Docks, pos2Copy, pos2CopyDocks);
 
-            rollComboIteration(rollCombo, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, output);
+            for (int i = 0; i < current_docks; i++) {
+                combinedDocksCopy[i] = combinedDocks[i];
+            }
+
+            rollComboIteration(rollCombo, combinedDocksCopy, rollCount, pos1, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
             nextRollCombo(rollCombo, rollCount);
+        } while (!isSameRollCombo(rollCombo, finalCombo));
+
+        //final rollCombo
+        copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
+        copyPosition(pos2, pos2Docks, pos2Copy, pos2CopyDocks);
+
+        for (int i = 0; i < current_docks; i++) {
+            combinedDocksCopy[i] = combinedDocks[i];
         }
+
+        rollComboIteration(rollCombo, combinedDocksCopy, rollCount, pos1, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
     }
 }
 
@@ -860,10 +896,60 @@ int rollDice() {
 }
 
 //finds the probability of the roll combination rollCombo and adds it to the g probability values.
-void rollComboIteration(int rollCombo[], int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double output[]) {
-    int combinedDocks[current_docks];
+void rollComboIteration(int rollCombo[], int combinedDocks[], int rollCount, int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double prob[], double output[]) {
+    double rollComboProb = 1;
+    int roll = 0;
+    double numerator;
+    double denominator;
+    int count1 = countChips(pos1Docks);
+    int count2 = countChips(pos2Docks);
 
-    
+    //find probability
+    for (int i = 0; i < rollCount; i++) {
+        //numerator
+        numerator = prob[rollCombo[i] - 1]; 
+        //denominator
+        denominator = 0;
+        for (int j = 0; j < current_docks; j++) {
+            if (combinedDocks[j] > 0) {
+                denominator += prob[j];
+            }
+        }
+
+        //multiply to current value
+        if (i < rollCount - 1 || rollCombo[i] != 1) {
+            rollComboProb *= (numerator / denominator);
+        }
+
+        //remove roll from combinedDocks
+        if (combinedDocks[rollCombo[i] - 1] > 0) {
+            combinedDocks[rollCombo[i] - 1]--;
+        }
+    }
+
+    //check result
+    do {
+        removeChip(pos1, pos1Docks, rollCombo[roll] - 1);
+        removeChip(pos2, pos2Docks, rollCombo[roll] - 1);
+        roll++;
+
+        count1 = countChips(pos1Docks);
+        count2 = countChips(pos2Docks);
+    } while (count1 > 0 && count2 > 0);
+
+    //result
+    if (count1 == 0 && count2 > 0) {
+        //player 1 wins
+        output[0] += rollComboProb;
+    }
+    else if (count1 > 0 && count2 == 0) {
+        //player 2 wins
+        output[1] += rollComboProb;
+    }
+    else if (count1 == 0 && count2 == 0) {
+        //tie game
+        output[2] += rollComboProb;
+    }
 }
 
 //sets up the probabilities array depending on the dice and faces values.
