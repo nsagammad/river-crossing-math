@@ -13,7 +13,7 @@
 
 //function declarations
 void addChip(int[], int[], int);
-void buildRollCombo(int[], int[], int[], int[]);
+int buildRollCombo(int[], int[], int[], int[]);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
@@ -26,11 +26,13 @@ void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionSimulation(int[], int[], int[], int[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
 bool isSamePosition(int[], int[]);
+bool isSameRollCombo(int[], int[]);
 int maxDock(int[]);
-void nextRollCombo(int[]);
+void nextRollCombo(int[], int);
 void playGame(int[], int[], int[], int[], double[]);
 void removeChip(int[], int[], int);
 int rollDice();
+void rollComboIteration(int[], int[], int[], int[], int[], double[]);
 void setupProbabilities(double[], int);
 
 //constants
@@ -182,7 +184,7 @@ void addChip(int pos[], int posDocks[], int dock) {
 }
 
 //builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
-void buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[]) {
+int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[]) {
     int idx = 0;
     
     //clear output
@@ -213,6 +215,8 @@ void buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2
     for (int i = 0; i < idx; i++) {
         output2[i] = output1[idx - i - 1];
     }
+
+    return idx - 1;
 }
 
 //copies pos and posDocks to posCopy and posCopyDocks.
@@ -483,7 +487,15 @@ void gFunctionNonRecursive(int pos1[], int pos1Docks[], int pos2[], int pos2Dock
     else {
         int rollCombo[current_chips * 2];
         int finalCombo[current_chips * 2];
-        buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo);
+        int rollCount = buildRollCombo(pos1Docks, pos2Docks, rollCombo, finalCombo);
+
+        while (!isSameRollCombo(rollCombo, finalCombo)) {
+            copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
+            copyPosition(pos2, pos2Docks, pos2Copy, pos2CopyDocks);
+
+            rollComboIteration(rollCombo, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, output);
+            nextRollCombo(rollCombo, rollCount);
+        }
     }
 }
 
@@ -657,6 +669,20 @@ bool isSamePosition(int pos1Docks[], int pos2Docks[]) {
     return isSame;
 }
 
+//checks whether two roll combinations are identical.
+bool isSameRollCombo(int combo1[], int combo2[]) {
+    bool isSame = true;
+
+    for (int i = 0; i < current_chips * 2; i++) {
+        if (combo1[i] != combo2[i]) {
+            isSame = false;
+            break;
+        }
+    }
+
+    return isSame;
+}
+
 //finds the dock with the most chips and returns the number of chips.
 int maxDock(int docks[]) {
     int max = 0;
@@ -671,8 +697,44 @@ int maxDock(int docks[]) {
 }
 
 //finds the next roll combo to help enumerate all possible roll combinations to clear the board.
-void nextRollCombo(int rollCombo[]) {
+void nextRollCombo(int rollCombo[], int count) {
+    int holder[count];
+    int idx1 = count - 1;
+    int idx2 = count - 1;
 
+    //rule 1: if last two in ascending order, swap the two rolls.
+    if (rollCombo[count - 1] > rollCombo[count - 2]) {
+        holder[0] = rollCombo[count - 2];
+        rollCombo[count - 2] = rollCombo[count - 1];
+        rollCombo[count - 1] = holder[0];
+    }
+    //rule 2: if in descending order, swap roll before the descending order with
+    //      the next higher roll. then sort the rest in ascending order.
+    else {
+        //find end of descending order
+        do {
+            idx1--;
+        } while (idx1 > 0 && rollCombo[idx1] >= rollCombo[idx1 + 1]);
+        //value of idx1: index of roll before descending order
+        //find next higher roll
+        while (idx2 > idx1 && rollCombo[idx2] <= rollCombo[idx1]) {
+            idx2--;
+        }
+        //value of idx2: higher roll than rollCombo[idx1]
+        //swap
+        holder[idx2] = rollCombo[idx2];
+        rollCombo[idx2] = rollCombo[idx1];
+        rollCombo[idx1] = holder[idx2];
+        //sort descending order into ascending order
+        //copy into holder
+        for (int i = idx1 + 1; i < count; i++) {
+            holder[i] = rollCombo[i];
+        }
+        //copy from holder
+        for (int i = count - 1; i > idx1; i--) {
+            rollCombo[idx1 + count - i] = holder[i];
+        }
+    }
 }
 
 //plays an instance of the River Crossing Game. This assumes default settings of two dice with six faces.
@@ -795,6 +857,13 @@ int rollDice() {
     }
 
     return diceSum;
+}
+
+//finds the probability of the roll combination rollCombo and adds it to the g probability values.
+void rollComboIteration(int rollCombo[], int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double output[]) {
+    int combinedDocks[current_docks];
+
+    
 }
 
 //sets up the probabilities array depending on the dice and faces values.
