@@ -22,19 +22,24 @@ void displayTitle();
 double expectedDurationRecursive(int[], int[], double[]);
 double expectedDurationSimulation(int[], int[]);
 double factorial(int);
+void findMiddle(int[]);
 void gameInputChips(int[], int[]);
 void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionSimulation(int[], int[], int[], int[], double[]);
-void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[]);
+void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[], int[]);
+void inputSettings();
 bool isSamePosition(int[], int[]);
 bool isSameRollCombo(int[], int[]);
 int maxDock(int[]);
 void nextRollCombo(int[], int);
 void playGame(int[], int[], int[], int[], double[]);
+int powInt(int, int);
+void printSettings();
 void removeChip(int[], int[], int);
 int rollDice();
 void rollComboIteration(int[], int[], int, int[], int[], int[], int[], double[], double[]);
+void setupDockOrder(int[]);
 void setupProbabilities(double[], int);
 
 //constants
@@ -51,16 +56,23 @@ enum Mode {
     MODE_GRECURSIVE, //find optimal initial position using recursive g Function
     MODE_GNONRECURSIVE, //using non-recursive g Function
     MODE_GSIMULATION, //using simulation
+    MODE_GALL, //all three g function methods
     MODE_EDRECURSIVE, //find best expected duration using recursive ed Function
-    MODE_EDSIMULATION //using simulation
+    MODE_EDSIMULATION, //using simulation
+    MODE_EDBOTH, //both ed function methods
+    MODE_GROUNDROBIN //all positions against all other positions
+};
+enum Amount {
+    AMOUNT_ONE = 1,
+    AMOUNT_ALL = 2
 };
 enum Speed {
-    SPEED_1, //no skips
-    SPEED_2, //only with chips in the middle
-    SPEED_3, //no gaps
-    SPEED_4, //symmetric
-    SPEED_5, //most of chips in the middle
-    SPEED_6 //reduced positions
+    SPEED_1 = 1, //no skips
+    SPEED_2 = 2, //only with chips in the middle
+    SPEED_3 = 3, //no gaps
+    SPEED_4 = 4, //symmetric
+    SPEED_5 = 5, //most of chips in the middle
+    SPEED_6 = 6 //reduced positions
 };
 enum Interval { //used for number of simulations and for intervals between console updates when computing for all positions.
     INTERVAL_EXTRATINY = 1,
@@ -69,7 +81,7 @@ enum Interval { //used for number of simulations and for intervals between conso
     INTERVAL_MEDIUM = 1000,
     INTERVAL_BIG = 10000,
     INTERVAL_HUGE = 100000,
-    iNTERVAL_MASSIVE = 1000000   
+    INTERVAL_MASSIVE = 1000000   
 };
 
 //global variables
@@ -77,6 +89,8 @@ int dice = 2;
 int faces = 6;
 int current_chips = 4;
 int current_docks = 12;
+int usable_docks = 11;
+int middle[2];
 double maxPositions = 0;
 double middleChipPositions = 0;
 int noGapPositions = 0;
@@ -85,13 +99,13 @@ int maxMiddlePositions = 0;
 int reducedPositions = 0;
 enum Player currentPlayer = PLAYER_1;
 enum Mode currentMode = MODE_GAME;
+enum Amount currentAmount = AMOUNT_ONE;
 enum Speed currentSpeed = SPEED_1;
 enum Interval currentInterval = INTERVAL_MEDIUM;
 
 int main() {
     //local variables
     char choice1 = '3'; //choice between playing the game or doing the calculations.
-    current_docks = dice * faces;
 
     srand(time(0));
 
@@ -122,8 +136,9 @@ int main() {
         int pos2Copy[current_chips];
         int pos2CopyDocks[current_docks];
         double probabilities[current_docks];
+        int dockOrder[usable_docks];
 
-        initializePositions(pos1, pos1Docks, pos2, pos2Docks, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks);
+        initializePositions(pos1, pos1Docks, pos2, pos2Docks, pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, dockOrder);
         setupProbabilities(probabilities, dice);
         //get both positions
         for (int i = 0; i < current_chips * 2; i++) {
@@ -142,31 +157,8 @@ int main() {
     }
     //computation and analyses
     else if (choice1 == '2') {
-        displayTitle();
-
-        //input dice, faces, current chips
-        printf("Input number of dice: ");
-        scanf(" %d", &dice);
-        printf("Input number of faces per die: ");
-        scanf(" %d", &faces);
-        current_docks = dice * faces;
-        //check for invalid input
-        while (dice <= 0 || faces <= 0 || current_docks > MAX_CHIPS_DOCKS) {
-            printf("Invalid dice information.\n");
-            printf("Input number of dice: ");
-            scanf(" %d", &dice);
-            printf("Input number of faces per die: ");
-            scanf(" %d", &faces);
-            current_docks = dice * faces;
-        }
-        printf("Input number of chips: ");
-        scanf(" %d", &current_chips);
-        //check for invalid input
-        while (current_chips <= 0 || current_chips > MAX_CHIPS_DOCKS) {
-            printf("Invalid number of chips.\n");
-            printf("Input number of chips: ");
-            scanf(" %d", &current_chips);
-        }
+        inputSettings();
+        printSettings();
 
         //initialize these after input.
         int leaderPos[current_chips]; //this holds the data for the leader position.
@@ -177,14 +169,25 @@ int main() {
         int positionDocks[current_docks];
         int finalPos[current_chips]; //this holds the data for the final position.
         int finalDocks[current_docks];
+        int dockOrder[usable_docks];
 
-        initializePositions(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks);
+        findMiddle(middle);
+        setupDockOrder(dockOrder);
+        initializePositions(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks, dockOrder);
+
+        if (currentMode >= 1 && currentMode <= 4) { //g function
+            printf("g function analysis\n");
+        }
+        else if (currentMode >= 5 && currentMode <= 7) { //ed function
+            printf("ed function analysis\n");
+        }
     }
     //function testing
     else if (choice1 == 'g') {
         printf("Welcome to function testing mode\n");
         printf("Here is where I place all my function tests.\n");
         //remember to remove this in the final version
+        //unless i use this for roundrobin mode
 
         current_chips = 4;
         current_docks = 12;
@@ -202,6 +205,8 @@ int main() {
         printf("Simulation: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
         gFunctionNonRecursive(pos1, pos1Docks, pos2, pos2Docks, probabilities, gFunction);
         printf("Non-Recursive: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
+
+        currentMode = MODE_GROUNDROBIN;
     }
     else if (choice1 == 'x') {
         printf("Exit the program\n");
@@ -223,18 +228,6 @@ void addChip(int pos[], int posDocks[], int dock) {
 
     //add to posDocks. increment the dock
     posDocks[dock]++;
-}
-
-//computes for the number of combinations of num1 things taken num2 at a time.
-double combination(int num1, int num2) {
-    double combi = 1;
-
-    //numerator
-    combi *= factorial(num1);
-    //denominator
-    combi /= (factorial(num1 - num2) * factorial(num2));
-
-    return combi;
 }
 
 //builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
@@ -278,6 +271,18 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
     }
 
     return idx;
+}
+
+//computes for the number of combinations of num1 things taken num2 at a time.
+double combination(int num1, int num2) {
+    double combi = 1;
+
+    //numerator
+    combi *= factorial(num1);
+    //denominator
+    combi /= (factorial(num1 - num2) * factorial(num2));
+
+    return combi;
 }
 
 //copies pos and posDocks to posCopy and posCopyDocks.
@@ -456,7 +461,7 @@ double expectedDurationSimulation(int pos[], int posDocks[]) {
         }
     }
 
-    ed = (double)rolls / currentInterval;
+    ed = (double)rolls / (double)currentInterval;
 
     return ed;
 }
@@ -479,6 +484,19 @@ double factorial(int num) {
     }
 
     return fact;
+}
+
+//finds the middle dock/s based on current_docks and dice.
+//dock counting starts at 0.
+void findMiddle(int middle[]) {
+    if (usable_docks % 2 == 1) { //odd
+        middle[0] = ((current_docks + dice) / 2) - 1;
+        middle[1] = middle[0]; //they are the same
+    }
+    else { //even
+        middle[0] = ((current_docks + dice - 1) / 2) - 1;
+        middle[1] = ((current_docks + dice + 1) / 2) - 1;
+    }
 }
 
 //lets the user add chips to the board.
@@ -729,7 +747,7 @@ void gFunctionSimulation(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[
 }
 
 //initializes the arrays for the positions and docks.
-void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int pos3[], int docks3[], int pos4[], int docks4[]) {
+void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int pos3[], int docks3[], int pos4[], int docks4[], int dockOrder[]) {
     if (currentMode == MODE_GAME) { //game mode
         //clear all positions
         for (int i = 0; i < current_chips; i++) {
@@ -746,10 +764,149 @@ void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int
             docks3[i] = 0;
             docks4[i] = 0;
         }
+
+        //clear dockOrder
+        for (int i = 0; i < usable_docks; i++) {
+            dockOrder[i] = 0;
+        }
     }
     else { //calculation modes
-        printf("TODO: Initialize positions for calculation modes\n");
+        //pos1: leader position
+        //pos2: mirror position
+        //pos3: current position
+        for (int i = 0; i < current_chips; i++) {
+            addChip(pos1, docks1, dockOrder[0]);
+            addChip(pos2, docks2, dockOrder[0]);
+            addChip(pos3, docks3, dockOrder[0]);
+        }
+
+        //pos4: final position
+        for (int i = 0; i < current_chips; i++) {
+            addChip(pos4, docks4, dockOrder[usable_docks - 1]);
+        }
     }
+}
+
+//allows the user to input the settings for computation and analysis.
+void inputSettings() {
+    char setting = 0;
+    char accept = 'x';
+    do {
+        displayTitle();
+            
+        //input dice, faces, current chips
+        printf("Input number of dice: ");
+        scanf(" %d", &dice);
+        printf("Input number of faces per die: ");
+        scanf(" %d", &faces);
+        current_docks = dice * faces;
+        usable_docks = current_docks - dice + 1;
+        //check for invalid input
+        while (dice <= 0 || faces <= 0 || current_docks > MAX_CHIPS_DOCKS) {
+            printf("Invalid dice information.\n");
+            printf("Input number of dice: ");
+            scanf(" %d", &dice);
+            printf("Input number of faces per die: ");
+            scanf(" %d", &faces);
+            current_docks = dice * faces;
+            usable_docks = current_docks - dice + 1;
+        }
+        printf("Input number of chips: ");
+        scanf(" %d", &current_chips);
+        //check for invalid input
+        while (current_chips <= 0 || current_chips > MAX_CHIPS_DOCKS) {
+            printf("Invalid number of chips.\n");
+            printf("Input number of chips: ");
+            scanf(" %d", &current_chips);
+        }
+
+        //input mode, amount, speed, interval
+        //input mode
+        printf("------------------------------\n");
+        printf("Calculation and Analysis Modes\n");
+        printf("[1] g Function: Recursive Method\n");
+        printf("[2] g Function: Non-Recursive Method\n");
+        printf("[3] g Function: Simulation Method\n");
+        printf("[4] g Function: All Methods\n");
+        printf("[5] Expected Duration: Recursive Method\n");
+        printf("[6] Expected Duration: Simulation Method\n");
+        printf("[7] Expected Duration: Both Methods\n");
+        printf("Enter mode: ");
+        scanf(" %c", &setting);
+        currentMode = setting - '0';
+        while (currentMode < 1 || currentMode > 7) {
+            printf("Invalid mode. Enter mode: ");
+            scanf(" %c", &setting);
+            currentMode = setting - '0';
+        }
+
+        //input amount
+        //only valid for non-all/both modes.
+        if (currentMode != MODE_GALL && currentMode != MODE_EDBOTH) {
+            printf("-----\n");
+            printf("Amounts\n");
+            printf("[1] One Position\n");
+            printf("[2] All Positions\n");
+            printf("Enter Amount: ");
+            scanf(" %c", &setting);
+            currentAmount = setting - '0';
+            while (currentAmount < 1 || currentAmount > 2) {
+                printf("Invalid amount. Enter amount: ");
+                scanf(" %c", &setting);
+                currentAmount = setting - '0';
+            }
+        }
+
+        //input speed
+        //only valid for all positions.
+        if (currentAmount == AMOUNT_ALL) {
+            printf("-----\n");
+            printf("Speed\n");
+            printf("[1] Speed 1: No positions skipped.\n");
+            printf("[2] Speed 2: Positions with no chips in the middle skipped.\n");
+            printf("[3] Speed 3: Positions with gaps are also skipped.\n");
+            printf("[4] Speed 4: Positions which are not symmetric are also skipped.\n");
+            printf("[5] Speed 5: Positions that don't have most chips in the middle are also skipped.\n");
+            printf("[6] Speed 6: Positions are reduced to improve calculation time.\n");
+            printf("Enter Speed: ");
+            scanf(" %c", &setting);
+            currentSpeed = setting - '0';
+            while (currentSpeed < 1 || currentSpeed > 6) {
+                printf("Invalid speed. Enter speed: ");
+                scanf(" %c", &setting);
+                currentSpeed = setting - '0';
+            }
+        }
+
+        //input interval
+        //only valid for simulation modes and all positions.
+        if (currentAmount == AMOUNT_ALL || currentMode == MODE_GSIMULATION || currentMode == MODE_GALL || currentMode == MODE_EDSIMULATION || currentMode == MODE_EDBOTH) {
+            printf("-----\n");
+            printf("Interval\n");
+            printf("[1] Extra Tiny: 1\n");
+            printf("[2] Tiny: 10\n");
+            printf("[3] Small: 100\n");
+            printf("[4] Medium: 1000\n");
+            printf("[5] Big: 10000\n");
+            printf("[6] Huge: 100000\n");
+            printf("[7] Massive: 1000000\n");
+            printf("Enter Speed: ");
+            scanf(" %c", &setting);
+            int interval = setting - '0';
+            while (interval < 1 || interval > 7) {
+                printf("Invalid speed. Enter speed: ");
+                scanf(" %c", &setting);
+                interval = setting - '0';
+            }
+            //convert to currentInterval
+            currentInterval = powInt(10, interval - 1);
+        }
+
+        //ask for settings approval
+        printf("\n----------\n");
+        printf("Press [y] to accept these settings. Other input will repeat the settings input. ");
+        scanf(" %c", &accept);
+    } while (accept != 'y');
 }
 
 //checks whether two positions are identical.
@@ -925,6 +1082,135 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double p
     }
 }
 
+//integer version of pow(x, y) in math.h
+int powInt(int x, int y) {
+    int power = 1;
+    //trivial cases
+    if (y == 0 && x != 0) {
+        power = 1;
+    }
+    else if (y == 1) {
+        power = x;
+    }
+    //non-trivial case
+    else if (y > 1) {
+        power = x * (powInt(x, y - 1));
+    }
+    else {
+        printf("undefined behaviour\n");
+    }
+
+    return power;
+}
+
+//prints the settings to console and later, to file.
+void printSettings() {
+    displayTitle();
+
+    //print dice, faces, chips
+    printf("Number of Dice: %d\n", dice);
+    printf("Number of Faces: %d\n", faces);
+    printf("Number of Chips: %d\n", current_chips);
+    printf("-----\n");
+
+    //print mode, amount, speed, interval
+    //print mode
+    switch (currentMode) {
+        case (MODE_GRECURSIVE):
+            printf("Mode: [1] g Function: Recursive Method\n");
+            break;
+        case (MODE_GNONRECURSIVE):
+            printf("Mode: [2] g Function: Non-Recursive Method\n");
+            break;
+        case (MODE_GSIMULATION):
+            printf("Mode: [3] g Function: Simulation Method\n");
+            break;
+        case (MODE_GALL):
+            printf("Mode: [4] g Function: All Methods\n");
+            break;
+        case (MODE_EDRECURSIVE):
+            printf("Mode: [5] Expected Duration: Recursive Method\n");
+            break;
+        case (MODE_EDSIMULATION):
+            printf("Mode: [6] Expected Duration: Simulation Method\n");
+            break;
+        case (MODE_EDBOTH):
+            printf("Mode: [7] Expected Duration: Both Methods\n");
+            break;
+        default:
+            printf("Invalid mode.\n");
+    }
+
+    //print amount
+    if (currentMode != MODE_GALL && currentMode != MODE_EDBOTH) {
+        switch (currentAmount) {
+            case (AMOUNT_ONE):
+                printf("Amount: [1] One Position\n");
+                break;
+            case (AMOUNT_ALL):
+                printf("Amount: [2] All Positions\n");
+                break;
+            default:
+                printf("Invalid amount.\n");
+        }
+    }
+
+    //print speed
+    if (currentAmount == AMOUNT_ALL) {
+        switch (currentSpeed) {
+            case (SPEED_1):
+                printf("Speed: [1] Speed 1: No positions skipped.\n");
+                break;
+            case (SPEED_2):
+                printf("Speed: [2] Speed 2: Positions with no chips in the middle skipped.\n");
+                break;
+            case (SPEED_3):
+                printf("Speed: [3] Speed 3: Positions with gaps are also skipped.\n");
+                break;
+            case (SPEED_4):
+                printf("Speed: [4] Speed 4: Positions which are not symmetric are also skipped.\n");
+                break;
+            case (SPEED_5):
+                printf("Speed: [5] Speed 5: Positions that don't have most chips in the middle are also skipped.\n");
+                break;
+            case (SPEED_6):
+                printf("Speed: [6] Speed 6: Positions are reduced to improve calculation time.\n");
+                break;
+            default:
+                printf("Invalid speed.\n");
+        }
+    }
+
+    //print interval
+    if (currentAmount == AMOUNT_ALL || currentMode == MODE_GSIMULATION || currentMode == MODE_GALL || currentMode == MODE_EDSIMULATION || currentMode == MODE_EDBOTH) {
+        switch (currentInterval) {
+            case (INTERVAL_EXTRATINY):
+                printf("Interval: [1] Extra Tiny: 1\n");
+                break;
+            case (INTERVAL_TINY):
+                printf("Interval: [2] Tiny: 10\n");
+                break;
+            case (INTERVAL_SMALL):
+                printf("Interval: [3] Small: 100\n");
+                break;
+            case (INTERVAL_MEDIUM):
+                printf("Interval: [4] Medium: 1000\n");
+                break;
+            case (INTERVAL_BIG):
+                printf("Interval: [5] Big: 10000\n");
+                break;
+            case (INTERVAL_HUGE):
+                printf("Interval: [6] Huge: 100000\n");
+                break;
+            case (INTERVAL_MASSIVE):
+                printf("Interval: [7] Massive: 1000000\n");
+            default:
+                printf("Invalid interval.\n");
+        }
+    }
+    printf("--------------------\n\n");
+}
+
 //removes a chip from a specific dock.
 //dock counting starts at 0.
 void removeChip(int pos[], int posDocks[], int dock) {
@@ -1010,6 +1296,42 @@ void rollComboIteration(int rollCombo[], int combinedDocks[], int rollCount, int
     else if (count1 == 0 && count2 == 0) {
         //tie game
         output[2] += rollComboProb;
+    }
+}
+
+//sets up the dock order for moving to the next position in the enumeration.
+//dock counting starts at 0.
+void setupDockOrder(int dockOrder[]) {
+    //clear dockOrder
+    for (int i = 0; i < usable_docks; i++) {
+        dockOrder[i] = 0;
+    }
+
+    //fill up dockOrder with the docks.
+    //start in the middle, then alternate left and right.
+    if (usable_docks % 2 == 1) { //odd usable_docks
+        dockOrder[0] = middle[0];
+
+        //odd i: left, even i: right
+        for (int i = 1; i < usable_docks; i++) {
+            if (i % 2 == 1) { //left
+                dockOrder[i] = middle[0] - ((i + 1) / 2);
+            }
+            else { //right
+                dockOrder[i] = middle[0] + (i / 2);
+            }
+        }
+    }
+    else { //even usable docks
+        //even i: left, odd i: right
+        for (int i = 0; i < usable_docks; i++) {
+            if (i % 2 == 0) { //left
+                dockOrder[i] = middle[0] - (i / 2);
+            }
+            else { //right
+                dockOrder[i] = middle[1] + ((i + 1) / 2);
+            }
+        }
     }
 }
 
