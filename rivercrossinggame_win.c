@@ -19,11 +19,14 @@ void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
 void displayBoard(int[], int[]);
 void displayTitle();
+void docks(int[], int[]);
+void edCompute(int[], int[], int[], int[], int[], int[], int[], int[], int[], double[]);
 double expectedDurationRecursive(int[], int[], double[]);
 double expectedDurationSimulation(int[], int[]);
 double factorial(int);
 void findMiddle(int[]);
 void gameInputChips(int[], int[]);
+void gCompute(int[], int[], int[], int[], int[], int[], int[], int[], int[], double[], double[]);
 void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionSimulation(int[], int[], int[], int[], double[]);
@@ -32,8 +35,10 @@ void inputSettings();
 bool isSamePosition(int[], int[]);
 bool isSameRollCombo(int[], int[]);
 int maxDock(int[]);
+void nextPosition(int[], int[], int[]);
 void nextRollCombo(int[], int);
 void playGame(int[], int[], int[], int[], double[]);
+void posToString(int[], char[], int);
 int powInt(int, int);
 void printSettings();
 void removeChip(int[], int[], int);
@@ -83,6 +88,10 @@ enum Interval { //used for number of simulations and for intervals between conso
     INTERVAL_HUGE = 100000,
     INTERVAL_MASSIVE = 1000000   
 };
+enum ToStringMode { //used for converting position to string.
+    STRING_CHIPS,
+    STRING_DOCKS
+};
 
 //global variables
 int dice = 2;
@@ -91,6 +100,7 @@ int current_chips = 4;
 int current_docks = 12;
 int usable_docks = 11;
 int middle[2];
+int positionCounter = 0;
 double maxPositions = 0;
 double middleChipPositions = 0;
 int noGapPositions = 0;
@@ -151,6 +161,14 @@ int main() {
             else {
                 gameInputChips(pos2, pos2Docks);
             }
+            
+            //switch player
+            if (currentPlayer == PLAYER_1) {
+                currentPlayer = PLAYER_2;
+            }
+            else {
+                currentPlayer = PLAYER_1;
+            }
         }
         //final board, ready to play the game
         playGame(pos1, pos1Docks, pos2, pos2Docks, probabilities);
@@ -169,17 +187,20 @@ int main() {
         int positionDocks[current_docks];
         int finalPos[current_chips]; //this holds the data for the final position.
         int finalDocks[current_docks];
-        int dockOrder[usable_docks];
+        int dockOrder[usable_docks]; //holds the data for the order of docks for moving through positions.
+        double probabilities[current_docks]; //holds the probability values for different dice rolls.
+        double gFunction[3];
 
         findMiddle(middle);
         setupDockOrder(dockOrder);
         initializePositions(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks, dockOrder);
+        setupProbabilities(probabilities, dice);
 
         if (currentMode >= 1 && currentMode <= 4) { //g function
-            printf("g function analysis\n");
+            gCompute(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks, dockOrder, probabilities, gFunction);
         }
         else if (currentMode >= 5 && currentMode <= 7) { //ed function
-            printf("ed function analysis\n");
+            edCompute(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks, dockOrder, probabilities);
         }
     }
     //function testing
@@ -375,6 +396,63 @@ void displayTitle() {
     printf("-------------------\n\n");
 }
 
+//converts a position in chips format to its docks format.
+void docks(int pos[], int posDocks[]) {
+    //clear posDocks
+    for (int i = 0; i < current_docks; i++) {
+        posDocks[i] = 0;
+    }
+
+    //fill up posDocks with chips
+    for (int i = 0; i < current_chips; i++) {
+        posDocks[pos[i] - 1]++;
+    }
+}
+
+//computes the expected duration of one or all positions.
+void edCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDocks[], int pos[], int posDocks[], int finalPos[], int finalDocks[], int dockOrder[], double prob[]) {
+    double ed = 0;
+    if (currentAmount == AMOUNT_ONE) {
+        int ctr = 0;
+        //ask for user input for positions
+        //get both positions
+        for (int i = 0; i < current_chips; i++) {
+            displayTitle();
+            displayBoard(leaderDocks, posDocks);
+
+            ctr = i + 1;
+            printf("Chip %d\n", ctr);
+            gameInputChips(leaderPos, leaderDocks);
+        }
+        //display final board
+        displayBoard(leaderDocks, posDocks);
+
+        //compute
+        printf("-----\n");
+        switch (currentMode) {
+            case (MODE_EDRECURSIVE):
+                ed = expectedDurationRecursive(leaderPos, leaderDocks, prob);
+                printf("Recursive Expected Duration Function: ed(A) = %lf\n", ed);
+                break;
+            case (MODE_EDSIMULATION):
+                ed = expectedDurationSimulation(leaderPos, leaderDocks);
+                printf("Simulation Expected Duration Function: ed(A) = %lf\n", ed);
+                break;
+            case (MODE_EDBOTH):
+                ed = expectedDurationRecursive(leaderPos, leaderDocks, prob);
+                printf("Recursive Expected Duration Function: ed(A) = %lf\n", ed);
+                ed = expectedDurationSimulation(leaderPos, leaderDocks);
+                printf("Simulation Expected Duration Function: ed(A) = %lf\n", ed);
+                break;
+            default:
+                printf("Invalid mode.\n");
+        }
+    }
+    else { //currentAmount == AMOUNT_ALL
+
+    }
+}
+
 //computes the expected duration of position pos using the recursive method.
 double expectedDurationRecursive(int pos[], int posDocks[], double prob[]) {
     double ed = 1;
@@ -533,13 +611,78 @@ void gameInputChips(int pos[], int posDocks[]) {
 
     //add chips
     addChip(pos, posDocks, dock);
+}
 
-    //switch player
-    if (currentPlayer == PLAYER_1) {
-        currentPlayer = PLAYER_2;
+//performs the g function analysis based on the settings provided.
+void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDocks[], int pos[], int posDocks[], int finalPos[], int finalDocks[], int dockOrder[], double prob[], double output[]) {
+    char posString[current_chips];
+    char docksString[current_docks];
+    
+    if (currentAmount == AMOUNT_ONE) {
+        int ctr = 0;
+        //ask for user input for positions
+        //get both positions
+        for (int i = 0; i < current_chips * 2; i++) {
+            displayTitle();
+            displayBoard(leaderDocks, posDocks);
+
+            //switch player
+            if (i < current_chips) {
+                currentPlayer = PLAYER_1;
+                ctr = i + 1;
+            }
+            else {
+                currentPlayer = PLAYER_2;
+                ctr = i + 1 - current_chips;
+            }
+            printf("Chip %d\n", ctr);
+            if (currentPlayer == PLAYER_1) {
+                gameInputChips(leaderPos, leaderDocks);
+            }
+            else {
+                gameInputChips(pos, posDocks);
+            }
+        }
+        //display final board
+        displayBoard(leaderDocks, posDocks);
+
+        //compute
+        printf("-----\n");
+        switch (currentMode) {
+            case (MODE_GRECURSIVE):
+                gFunctionRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+                printf("Recursive g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                break;
+            case (MODE_GNONRECURSIVE):
+                gFunctionNonRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+                printf("Non-Recursive g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                break;
+            case (MODE_GSIMULATION):
+                gFunctionSimulation(leaderPos, leaderDocks, pos, posDocks, output);
+                printf("Simulation g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                break;
+            case (MODE_GALL):
+                gFunctionRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+                printf("Recursive g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                gFunctionNonRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+                printf("Non-Recursive g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                gFunctionSimulation(leaderPos, leaderDocks, pos, posDocks, output);
+                printf("Simulation g Function: g(A, B) = {%lf, %lf, %lf}\n", output[0], output[1], output[2]);
+                break;
+            default:
+                printf("Invalid mode.\n");
+        }
     }
-    else {
-        currentPlayer = PLAYER_1;
+    else { //currentAmount == AMOUNT_ALL
+        positionCounter = 0;
+        while (!isSamePosition(posDocks, finalDocks)) {
+            posToString(pos, posString, STRING_CHIPS);
+            printf("%7d | %s\n", positionCounter + 1, posString);
+            nextPosition(pos, posDocks, dockOrder);
+        }
+        //final position
+        posToString(pos, posString, STRING_CHIPS);
+        printf("%7d | %s\n", positionCounter + 1, posString);
     }
 }
 
@@ -770,6 +913,23 @@ void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int
             dockOrder[i] = 0;
         }
     }
+    else if (currentAmount == AMOUNT_ONE) { //calculation mode: amount one
+        //clear all positions
+        for (int i = 0; i < current_chips; i++) {
+            pos1[i] = 0;
+            pos2[i] = 0;
+            pos3[i] = 0;
+            pos4[i] = 0;
+        }
+
+        //clear all docks
+        for (int i = 0; i < current_docks; i++) {
+            docks1[i] = 0;
+            docks2[i] = 0;
+            docks3[i] = 0;
+            docks4[i] = 0;
+        }
+    }
     else { //calculation modes
         //pos1: leader position
         //pos2: mirror position
@@ -950,6 +1110,43 @@ int maxDock(int docks[]) {
     return max;
 }
 
+//finds the next position to help enumerate all possible initial positions.
+void nextPosition(int pos[], int posDocks[], int dockOrder[]) {
+    int idx1 = 0;
+    int idx2 = 0;
+    //rule 1: if last chip is not at last dockorder, move forward in dock order.
+    if (pos[current_chips - 1] != dockOrder[usable_docks - 1] + 1) {
+        //find last chip in dock order
+        while (pos[current_chips - 1] != dockOrder[idx1] + 1) {
+            idx1++;
+        }
+        //idx1 = index of last chip in dockorder
+        //move forward in dock order
+        pos[current_chips - 1] = dockOrder[idx1 + 1] + 1;
+    }
+    //rule 2: if last chip is at last dockorder, find the first chip from the end not at last dock order, and move it, along with all chips after, to the next dock order.
+    else {
+        idx2 = current_chips - 1;
+        while (pos[idx2] == dockOrder[usable_docks - 1] + 1) {
+            idx2--;
+        }
+        //idx2 = index of chip in pos that is not last in dockorder
+        //find pos[idx2] in dock order
+        idx1 = 0;
+        while (pos[idx2] != dockOrder[idx1] + 1) {
+            idx1++;
+        }
+        //idx1 = index of pos[idx2] in dock order
+        //move forward pos[idx2] and succeeding chips in dockorder
+        for (int i = idx2; i < current_chips; i++) {
+            pos[idx2] = dockOrder[idx1 + 1] + 1;
+        }
+    }
+
+    //update posDocks
+    docks(pos, posDocks);
+}
+
 //finds the next roll combo to help enumerate all possible roll combinations to clear the board.
 void nextRollCombo(int rollCombo[], int count) {
     int holder[count];
@@ -1079,6 +1276,29 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double p
     else if (count1 == -1 && count2 == -1) {
         //game ended
         printf("Game ended after %d rolls!\n", rolls);
+    }
+}
+
+//converts position (chip or dock format) into a string
+void posToString(int pos[], char output[], int mode) {
+    switch (mode) {
+        case (STRING_CHIPS):
+            for (int i = 0; i < current_chips; i++) {
+                output[i] = DOCK_STRING[pos[i] - 1];
+            }
+            break;
+        case (STRING_DOCKS):
+            for (int i = 0; i < current_docks; i++) {
+                if (pos[i] == 0) {
+                    output[i] = '0';
+                }
+                else {
+                    output[i] = DOCK_STRING[pos[i] - 1];
+                }
+            }
+            break;
+        default:
+            printf("Invalid mode.\n");
     }
 }
 
