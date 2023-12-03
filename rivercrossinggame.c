@@ -17,8 +17,8 @@ void addChip(int[], int[], int);
 void buildFilename();
 int buildRollCombo(int[], int[], int[], int[], int[]);
 bool checkHasGap(int[]);
-bool checkSymmetric(int[]);
 bool checkMaxMiddle(int[]);
+bool checkSymmetric(int[]);
 double combination(int, int);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
@@ -51,6 +51,7 @@ void playGame(int[], int[], int[], int[], double[]);
 void posToString(int[], char[]);
 int powInt(int, int);
 void printSettings();
+void reducePositions(int[], int[], int[], int[]);
 void removeChip(int[], int[], int);
 int rollDice();
 void rollComboIteration(int[], int[], int, int[], int[], int[], int[], double[], double[]);
@@ -131,7 +132,8 @@ double middleChipPositions = 0;
 int noGapPositions = 0;
 int symmetricPositions = 0;
 int maxMiddlePositions = 0;
-int reducedPositions = 0;
+int validPositions = 0;
+int restartPositions = 0;
 enum Player currentPlayer = PLAYER_1;
 enum Mode currentMode = MODE_GAME;
 enum Amount currentAmount = AMOUNT_ONE;
@@ -395,18 +397,101 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
 //checks whether a given position has gaps in its docks
 //i.e. has a dock with no chips while docks on its left and right have chips.
 bool checkHasGap(int posDocks[]) {
+    bool hasGap = false;
+    int idx1 = 0;
+    
+    while (posDocks[idx1] == 0) {
+        idx1++;
+    }
+    //idx1 = index of first dock with chips
+    while (posDocks[idx1] > 0 && idx1 < current_docks) {
+        idx1++;
+    }
+    //idx1 = index of first empty dock after docks with chips
+    //if idx1 is at the end of the array, no gap
+    if (idx1 == current_docks) {
+        hasGap = false;
+    }
+    //if idx1
+    else {
+        while (posDocks[idx1] == 0 && idx1 < current_docks) {
+            idx1++;
+        }
 
+        //last check. idx1 = index of first dock with chips
+        if (idx1 == current_docks) {
+            hasGap = false;
+        }
+        else {
+            hasGap = true;
+        }
+    }
+
+    return hasGap;
+}
+
+//checks whether the dock with the most chips is in the middle.
+bool checkMaxMiddle(int posDocks[]) {
+    bool maxMiddle = true;
+    int maxChips = 0;
+    int endidx = 0;
+
+    //find middle has been called; middle[] has been set.
+    if (posDocks[middle[0]] >= posDocks[middle[1]]) {
+        maxChips = posDocks[middle[0]];
+    }
+    else {
+        maxChips = posDocks[middle[1]];
+    }
+
+    //find endidx
+    if (usable_docks % 2 == 1) {
+        endidx = (usable_docks + 1) / 2;
+    }
+    else {
+        endidx = usable_docks / 2;
+    }
+
+    //check docks
+    for (int i = 1; i < endidx; i++) {
+        if ((posDocks[middle[0] - i] > maxChips) || (posDocks[middle[1] + 1] > maxChips)) {
+            maxMiddle = false;
+            break;
+        }
+        else if (posDocks[middle[0] - i] <= posDocks[middle[1] + i]) { //set new value of maxChips
+            maxChips = posDocks[middle[0] - i];
+        }
+        else {
+            maxChips = posDocks[middle[1] + i];
+        }
+    }
+
+    return maxMiddle;
 }
 
 //checks whether a given position is symmetric.
 //a position is symmetric when it is symmetric (or almost symmetric) with respect to the middle dock.
 bool checkSymmetric(int posDocks[]) {
+    bool symmetric = true;
+    int endidx = 0;
 
-}
+    //find middle has already been called, so middle[] is set.
+    if (usable_docks % 2 == 1) {
+        endidx = (usable_docks + 1) / 2;
+    }
+    else {
+        endidx = usable_docks / 2;
+    }
 
-//checks whether the dock with the most chips is in the middle.
-bool checkMaxMiddle(int posDocks[]) {
+    //check docks
+    for (int i = 0; i < endidx; i++) {
+        if ((posDocks[middle[0] - i] - posDocks[middle[1] + i] > 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] > 1)) {
+            symmetric = false;
+            break;
+        }
+    }
 
+    return symmetric;
 }
 
 //computes for the number of combinations of num1 things taken num2 at a time.
@@ -797,6 +882,9 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
     }
     else { //currentAmount == AMOUNT_ALL
         positionCounter = 0;
+        maxPositions = combination(usable_docks + current_chips - 1, current_chips);
+        middleChipPositions = combination(usable_docks + current_chips - 2, current_chips);
+
         clock_gettime(CLOCK_MONOTONIC, &start);
 
         currentStep = STEP_INITIAL;
@@ -896,6 +984,26 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
                 printf("Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
                 fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
             }
+        }
+
+        //number of positions checked
+        fprintf(txtfile, "-----\nNumber of Positions Checked: %d\n", validPositions);
+        fprintf(txtfile, "Number of Positions Checked After Restart: %d\n", restartPositions);
+        fprintf(txtfile, "Total Number of Positions: %.0lf\n", maxPositions);
+        if (currentSpeed >= SPEED_2) {
+            fprintf(txtfile, "Positions with Chips in the Middle: %.0lf\n", middleChipPositions);
+        }
+        if (currentSpeed >= SPEED_3) {
+            fprintf(txtfile, "Positions with No Gaps: %d\n", noGapPositions);
+        }
+        if (currentSpeed >= SPEED_4) {
+            fprintf(txtfile, "Positions with Symmetry: %d\n", symmetricPositions);
+        }
+        if (currentSpeed >= SPEED_5) {
+            fprintf(txtfile, "Positions with Most Chips in the Middle: %d\n", maxMiddlePositions);
+        }
+        if (currentSpeed >= SPEED_6) {
+            fprintf(txtfile, "All valid positions were reduced to improve calculation time.\n");
         }
 
         stopTimer();
@@ -1109,50 +1217,65 @@ void gFunctionSimulation(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[
 void gIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDocks[], int pos[], int posDocks[], int dockOrder[], double prob[], double output[]) {
     char posString[current_chips + 1];
     char dockString[current_docks + 1];
-    
-    switch (currentMode) {
-        case (MODE_GRECURSIVE):
-            gFunctionRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
-            break;
-        case (MODE_GNONRECURSIVE):
-            gFunctionNonRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
-            break;
-        case (MODE_GSIMULATION):
-            gFunctionSimulation(leaderPos, leaderDocks, pos, posDocks, output);
-            break;
-        default:
-            printf("Invalid mode.\n");
-    }
+    bool isValid = isValidPosition(pos, posDocks);
+    int pos1Copy[current_chips];
+    int pos1CopyDocks[current_docks];
+    int pos2Copy[current_chips];
+    int pos2CopyDocks[current_docks];
 
-    //print positions
-    currentStringMode = STRING_DOCKS;
-    posToString(leaderDocks, dockString);
-    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
-        fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
-    }
-    else if (currentStep == STEP_RESTART) {
-        fprintf(txtfile, "%10d | %s | ", restartCounter + 1, dockString);
-    }
-    currentStringMode = STRING_DOCKS;
-    posToString(posDocks, dockString);
-    fprintf(txtfile, "%s | {%lf, %lf, %lf} ", dockString, output[0], output[1], output[2]);
+    if (isValid) {
+        copyPosition(leaderPos, leaderDocks, pos1Copy, pos1CopyDocks);
+        copyPosition(pos, posDocks, pos2Copy, pos2CopyDocks);
 
-    //find result
-    if (positionCounter == 0) {
-        //first leader
-        newLeader(pos, posDocks, leaderPos, leaderDocks);
-    }
-    else if (output[1] > output[0] && !isMirrorPosition(leaderDocks, posDocks)) {
-        //new leader
-        newLeader(pos, posDocks, leaderPos, leaderDocks);
-    }
-    else if (output[0] == output[1] || isMirrorPosition(leaderDocks, posDocks)) {
-        //new mirror
-        newMirror(pos, posDocks, mirrorPos, mirrorDocks);
-    }
-    else {
-        //no change
-        fprintf(txtfile, "|\n");
+        //account for speed_6: reduced positions
+        if (currentSpeed == SPEED_6) {
+            reducePositions(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks);
+        }
+
+        switch (currentMode) {
+            case (MODE_GRECURSIVE):
+                gFunctionRecursive(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
+                break;
+            case (MODE_GNONRECURSIVE):
+                gFunctionNonRecursive(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
+                break;
+            case (MODE_GSIMULATION):
+                gFunctionSimulation(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, output);
+                break;
+            default:
+                printf("Invalid mode.\n");
+        }
+
+        //print positions
+        currentStringMode = STRING_DOCKS;
+        posToString(leaderDocks, dockString);
+        if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+            fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
+        }
+        else if (currentStep == STEP_RESTART) {
+            fprintf(txtfile, "%10d | %s | ", restartCounter + 1, dockString);
+        }
+        currentStringMode = STRING_DOCKS;
+        posToString(posDocks, dockString);
+        fprintf(txtfile, "%s | {%lf, %lf, %lf} ", dockString, output[0], output[1], output[2]);
+
+        //find result
+        if (positionCounter == 0) {
+            //first leader
+            newLeader(pos, posDocks, leaderPos, leaderDocks);
+        }
+        else if (output[1] > output[0] && !isMirrorPosition(leaderDocks, posDocks)) {
+            //new leader
+            newLeader(pos, posDocks, leaderPos, leaderDocks);
+        }
+        else if (output[0] == output[1] || isMirrorPosition(leaderDocks, posDocks)) {
+            //new mirror
+            newMirror(pos, posDocks, mirrorPos, mirrorDocks);
+        }
+        else {
+            //no change
+            fprintf(txtfile, "|\n");
+        }
     }
     
     //interval
@@ -1395,7 +1518,29 @@ bool isValidPosition(int pos[], int posDocks[]) {
     bool isValid = true;
 
     if (currentSpeed >= SPEED_3) {
-        isValid = true;
+        isValid = !checkHasGap(posDocks);
+        if (isValid && currentStep != STEP_RESTART) {
+            noGapPositions++;
+        }
+    }
+    if (currentSpeed >= SPEED_4) {
+        isValid = checkSymmetric(posDocks);
+        if (isValid && currentStep != STEP_RESTART) {
+            symmetricPositions++;
+        }
+    }
+    if (currentSpeed >= SPEED_5) {
+        isValid = checkMaxMiddle(posDocks);
+        if (isValid && currentStep != STEP_RESTART) {
+            maxMiddlePositions++;
+        }
+    }
+
+    if (isValid && currentStep != STEP_RESTART) {
+        validPositions++;
+    }
+    else if (isValid && currentStep == STEP_RESTART) {
+        restartPositions++;
     }
 
     return isValid;
@@ -1767,6 +1912,24 @@ void printSettings() {
     fprintf(txtfile, "-----\n\n");
 }
 
+//reduces positions before computing g function.
+void reducePositions(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[]) {
+    //these are already copies, no need to copy again.
+    //go through each dock. if one position has fewer chips than the other, remove all chips from that dock for the position with less.
+    for (int i = 0; i < current_docks; i++) {
+        if (pos1Docks[i] < pos2Docks[i]) {
+            while (pos1Docks[i] > 0) {
+                removeChip(pos1, pos1Docks, i);
+            }
+        }
+        else if (pos2Docks[i] < pos1Docks[i]) {
+            while (pos2Docks[i] > 0) {
+                removeChip(pos2, pos2Docks, i);
+            }
+        }
+    }
+}
+
 //removes a chip from a specific dock.
 //dock counting starts at 0.
 void removeChip(int pos[], int posDocks[], int dock) {
@@ -1938,5 +2101,5 @@ void stopTimer() {
     elapsedTime += (end.tv_nsec - start.tv_nsec) * 1e-9;
  
     printf("Computation Time: %.9lf seconds\n", elapsedTime);
-    fprintf(txtfile, "Computation Time: %.9lf seconds\n", elapsedTime);
+    fprintf(txtfile, "-----\nComputation Time: %.9lf seconds\n", elapsedTime);
 }
