@@ -10,10 +10,15 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 //function declarations
 void addChip(int[], int[], int);
+void buildFilename();
 int buildRollCombo(int[], int[], int[], int[], int[]);
+bool checkHasGap(int[]);
+bool checkSymmetric(int[]);
+bool checkMaxMiddle(int[]);
 double combination(int, int);
 void copyPosition(int[], int[], int[], int[]);
 int countChips(int[]);
@@ -30,15 +35,20 @@ void gCompute(int[], int[], int[], int[], int[], int[], int[], int[], int[], dou
 void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionSimulation(int[], int[], int[], int[], double[]);
+void gIteration(int[], int[], int[], int[], int[], int[], int[], double[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[], int[]);
 void inputSettings();
+bool isMirrorPosition(int[], int[]);
 bool isSamePosition(int[], int[]);
 bool isSameRollCombo(int[], int[]);
+bool isValidPosition(int[], int[]);
 int maxDock(int[]);
+void newLeader(int[], int[], int[], int[]);
+void newMirror(int[], int[], int[], int[]);
 void nextPosition(int[], int[], int[]);
 void nextRollCombo(int[], int);
 void playGame(int[], int[], int[], int[], double[]);
-void posToString(int[], char[], int);
+void posToString(int[], char[]);
 int powInt(int, int);
 void printSettings();
 void removeChip(int[], int[], int);
@@ -46,6 +56,7 @@ int rollDice();
 void rollComboIteration(int[], int[], int, int[], int[], int[], int[], double[], double[]);
 void setupDockOrder(int[]);
 void setupProbabilities(double[], int);
+void stopTimer();
 
 //constants
 const int MAX_CHIPS_DOCKS = 35;
@@ -92,8 +103,17 @@ enum ToStringMode { //used for converting position to string.
     STRING_CHIPS,
     STRING_DOCKS
 };
+enum Step { //used for going through initial positions.
+    STEP_INITIAL,
+    STEP_FINAL,
+    STEP_RESTART,
+};
 
 //global variables
+FILE *txtfile;
+FILE *csvfile;
+char filename[100] = "";
+struct timespec start, end;
 int dice = 2;
 int faces = 6;
 int current_chips = 4;
@@ -101,6 +121,11 @@ int current_docks = 12;
 int usable_docks = 11;
 int middle[2];
 int positionCounter = 0;
+int restartCounter = 0;
+int leaderCounter = 0;
+int mirrorCounter = 0;
+int restartLeaderCounter = 0;
+int restartMirrorCounter = 0;
 double maxPositions = 0;
 double middleChipPositions = 0;
 int noGapPositions = 0;
@@ -112,6 +137,8 @@ enum Mode currentMode = MODE_GAME;
 enum Amount currentAmount = AMOUNT_ONE;
 enum Speed currentSpeed = SPEED_1;
 enum Interval currentInterval = INTERVAL_MEDIUM;
+enum ToStringMode currentStringMode = STRING_CHIPS;
+enum Step currentStep = STEP_INITIAL;
 
 int main() {
     //local variables
@@ -176,6 +203,8 @@ int main() {
     //computation and analyses
     else if (choice1 == '2') {
         inputSettings();
+        buildFilename();
+        txtfile = fopen(filename, "w");
         printSettings();
 
         //initialize these after input.
@@ -202,6 +231,8 @@ int main() {
         else if (currentMode >= 5 && currentMode <= 7) { //ed function
             edCompute(leaderPos, leaderDocks, mirrorPos, mirrorDocks, position, positionDocks, finalPos, finalDocks, dockOrder, probabilities);
         }
+        
+        fclose(txtfile);
     }
     //function testing
     else if (choice1 == 'g') {
@@ -251,6 +282,73 @@ void addChip(int pos[], int posDocks[], int dock) {
     posDocks[dock]++;
 }
 
+//builds the filename of the output file based on user settings.
+void buildFilename() {
+    char number[3];
+    //dice and faces
+    number[0] = (faces / 10) + '0';
+    number[1] = (faces % 10) + '0';
+    strcat(filename, number);
+    strcat(filename, "x");
+    number[0] = (dice / 10) + '0';
+    number[1] = (dice % 10) + '0';
+    strcat(filename, number);
+    strcat(filename, " ");
+
+    //chips
+    number[0] = (current_chips / 10) + '0';
+    number[1] = (current_chips % 10) + '0';
+    strcat(filename, number);
+    strcat(filename, " Chips");
+    
+    //mode
+    switch (currentMode) {
+        case (MODE_GRECURSIVE):
+            strcat(filename, " g Function Recursive");
+            break;
+        case (MODE_GNONRECURSIVE):
+            strcat(filename, " g Function Non-Recursive");
+            break;
+        case (MODE_GSIMULATION):
+            strcat(filename, " g Function Simulation");
+            break;
+        case (MODE_EDRECURSIVE):
+            strcat(filename, " Expected Duration Recursive");
+            break;
+        case (MODE_EDSIMULATION):
+            strcat(filename, " Expected Duration Simulation");
+            break;
+        default:
+            strcat(filename, " no mode");
+    }
+
+    //speed
+    switch (currentSpeed) {
+        case (SPEED_1):
+            strcat(filename, " Speed 1.txt");
+            break;
+        case (SPEED_2):
+            strcat(filename, " Speed 2.txt");
+            break;
+        case (SPEED_3):
+            strcat(filename, " Speed 3.txt");
+            break;
+        case (SPEED_4):
+            strcat(filename, " Speed 4.txt");
+            break;
+        case (SPEED_5):
+            strcat(filename, " Speed 5.txt");
+            break;
+        case (SPEED_6):
+            strcat(filename, " Speed 6.txt");
+            break;
+        default:
+            strcat(filename, " no speed.txt");
+    }
+
+    printf("Filename: %s\n", filename);
+}
+
 //builds the roll combo that will clear the board based on pos1Docks and pos2Docks.
 int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[], int output3[]) {
     int idx = 0;
@@ -292,6 +390,23 @@ int buildRollCombo(int pos1Docks[], int pos2Docks[], int output1[], int output2[
     }
 
     return idx;
+}
+
+//checks whether a given position has gaps in its docks
+//i.e. has a dock with no chips while docks on its left and right have chips.
+bool checkHasGap(int posDocks[]) {
+
+}
+
+//checks whether a given position is symmetric.
+//a position is symmetric when it is symmetric (or almost symmetric) with respect to the middle dock.
+bool checkSymmetric(int posDocks[]) {
+
+}
+
+//checks whether the dock with the most chips is in the middle.
+bool checkMaxMiddle(int posDocks[]) {
+
 }
 
 //computes for the number of combinations of num1 things taken num2 at a time.
@@ -615,10 +730,17 @@ void gameInputChips(int pos[], int posDocks[]) {
 
 //performs the g function analysis based on the settings provided.
 void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDocks[], int pos[], int posDocks[], int finalPos[], int finalDocks[], int dockOrder[], double prob[], double output[]) {
-    char posString[current_chips];
-    char docksString[current_docks];
+    char posString[current_chips + 1];
+    char docksString[current_docks + 1];
+    int restartLeaderPos[current_chips];
+    int restartLeaderDocks[current_docks];
+    int restartMirrorPos[current_chips];
+    int restartMirrorDocks[current_docks];
     
-    if (currentAmount == AMOUNT_ONE) {
+    if (currentMode == MODE_GROUNDROBIN) {
+        //most intense mode
+    }
+    else if (currentAmount == AMOUNT_ONE) {
         int ctr = 0;
         //ask for user input for positions
         //get both positions
@@ -675,14 +797,108 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
     }
     else { //currentAmount == AMOUNT_ALL
         positionCounter = 0;
+        clock_gettime(CLOCK_MONOTONIC, &start);
+
+        currentStep = STEP_INITIAL;
         while (!isSamePosition(posDocks, finalDocks)) {
-            posToString(pos, posString, STRING_CHIPS);
-            printf("%7d | %s\n", positionCounter + 1, posString);
-            nextPosition(pos, posDocks, dockOrder);
+            gIteration(leaderPos, leaderDocks, mirrorPos, mirrorDocks, pos, posDocks, dockOrder, prob, output);
         }
         //final position
-        posToString(pos, posString, STRING_CHIPS);
-        printf("%7d | %s\n", positionCounter + 1, posString);
+        currentStep = STEP_FINAL;
+        gIteration(leaderPos, leaderDocks, mirrorPos, mirrorDocks, pos, posDocks, dockOrder, prob, output);
+
+        //restart
+        fprintf(txtfile, "-----\n");
+        printf("-----\n");
+        currentStringMode = STRING_CHIPS;
+        posToString(leaderPos, posString);
+        currentStringMode = STRING_DOCKS;
+        posToString(leaderDocks, docksString);
+        fprintf(txtfile, "Current Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+        if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
+            currentStringMode = STRING_CHIPS;
+            posToString(mirrorPos, posString);
+            currentStringMode = STRING_DOCKS;
+            posToString(mirrorDocks, docksString);
+            fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+        }
+        printf("Restarting cycle...\n");
+        printf("-----\n");
+        fprintf(txtfile, "-----\n");
+
+        //reinitialize pos and posDocks
+        for (int i = 0; i < current_chips; i++) {
+            pos[i] = 0;
+        }
+        for (int i = 0; i < current_docks; i++) {
+            posDocks[i] = 0;
+        }
+        for (int i = 0; i < current_chips; i++) {
+            addChip(pos, posDocks, dockOrder[0]);
+        }
+        //initialize restartLeaderPos
+        copyPosition(leaderPos, leaderDocks, restartLeaderPos, restartLeaderDocks);
+
+        //restart cycle
+        currentStep = STEP_RESTART;
+        while (restartCounter < leaderCounter) {
+            gIteration(restartLeaderPos, restartLeaderDocks, restartMirrorPos, restartMirrorDocks, pos, posDocks, dockOrder, prob, output);
+        }
+
+        //results
+        //leader DID NOT change during the restart cycle, it is the optimal initial position.
+        if (isSamePosition(leaderDocks, restartLeaderDocks)) {
+            currentStringMode = STRING_CHIPS;
+            posToString(leaderPos, posString);
+            currentStringMode = STRING_DOCKS;
+            posToString(leaderDocks, docksString);
+            printf("\n-----\nOptimal Initial Position: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "\n-----\nOptimal Initial Position: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
+                currentStringMode = STRING_CHIPS;
+                posToString(mirrorPos, posString);
+                currentStringMode = STRING_DOCKS;
+                posToString(mirrorDocks, docksString);
+                printf("Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+            }
+        }
+        //leader DID change during the restart cycle, there is no initial position.
+        else {
+            printf("\n-----\nNo Optimal Initial Position found.\n");
+            fprintf(txtfile, "\n-----\nNo Optimal Initial Position found.\n");
+            currentStringMode = STRING_CHIPS;
+            posToString(leaderPos, posString);
+            currentStringMode = STRING_DOCKS;
+            posToString(leaderDocks, docksString);
+            printf("Initial Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "Initial Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
+                currentStringMode = STRING_CHIPS;
+                posToString(mirrorPos, posString);
+                currentStringMode = STRING_DOCKS;
+                posToString(mirrorDocks, docksString);
+                printf("Initial Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Initial Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+            }
+
+            currentStringMode = STRING_CHIPS;
+            posToString(restartLeaderPos, posString);
+            currentStringMode = STRING_DOCKS;
+            posToString(restartLeaderDocks, docksString);
+            printf("Restart Leader: Position %d: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "Restart Leader: Position %d: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
+            if (isMirrorPosition(restartLeaderDocks, restartMirrorDocks) && !isSamePosition(restartLeaderDocks, restartMirrorDocks)) {
+                currentStringMode = STRING_CHIPS;
+                posToString(restartMirrorPos, posString);
+                currentStringMode = STRING_DOCKS;
+                posToString(restartMirrorDocks, docksString);
+                printf("Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
+            }
+        }
+
+        stopTimer();
     }
 }
 
@@ -889,48 +1105,98 @@ void gFunctionSimulation(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[
     }
 }
 
+//performs one iteration of gCompute for one position out of all possible initial positions.
+void gIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDocks[], int pos[], int posDocks[], int dockOrder[], double prob[], double output[]) {
+    char posString[current_chips + 1];
+    char dockString[current_docks + 1];
+    
+    switch (currentMode) {
+        case (MODE_GRECURSIVE):
+            gFunctionRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+            break;
+        case (MODE_GNONRECURSIVE):
+            gFunctionNonRecursive(leaderPos, leaderDocks, pos, posDocks, prob, output);
+            break;
+        case (MODE_GSIMULATION):
+            gFunctionSimulation(leaderPos, leaderDocks, pos, posDocks, output);
+            break;
+        default:
+            printf("Invalid mode.\n");
+    }
+
+    //print positions
+    currentStringMode = STRING_DOCKS;
+    posToString(leaderDocks, dockString);
+    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+        fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
+    }
+    else if (currentStep == STEP_RESTART) {
+        fprintf(txtfile, "%10d | %s | ", restartCounter + 1, dockString);
+    }
+    currentStringMode = STRING_DOCKS;
+    posToString(posDocks, dockString);
+    fprintf(txtfile, "%s | {%lf, %lf, %lf} ", dockString, output[0], output[1], output[2]);
+
+    //find result
+    if (positionCounter == 0) {
+        //first leader
+        newLeader(pos, posDocks, leaderPos, leaderDocks);
+    }
+    else if (output[1] > output[0] && !isMirrorPosition(leaderDocks, posDocks)) {
+        //new leader
+        newLeader(pos, posDocks, leaderPos, leaderDocks);
+    }
+    else if (output[0] == output[1] || isMirrorPosition(leaderDocks, posDocks)) {
+        //new mirror
+        newMirror(pos, posDocks, mirrorPos, mirrorDocks);
+    }
+    else {
+        //no change
+        fprintf(txtfile, "|\n");
+    }
+    
+    //interval
+    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+        if ((positionCounter + 1) % currentInterval == 0) {
+            printf("Done with %d positions.\n", positionCounter + 1);
+        }
+    }
+    else if (currentStep == STEP_RESTART) {
+        if ((restartCounter + 1) % currentInterval == 0) {
+            printf("Done with %d positions.\n", restartCounter + 1);
+        }
+    }
+
+    //move position if step_initial or step_restart
+    if (currentStep == STEP_INITIAL) {
+        nextPosition(pos, posDocks, dockOrder);
+        positionCounter++;
+    }
+    else if (currentStep == STEP_RESTART) {
+        nextPosition(pos, posDocks, dockOrder);
+        restartCounter++;
+    }
+}
+
 //initializes the arrays for the positions and docks.
 void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int pos3[], int docks3[], int pos4[], int docks4[], int dockOrder[]) {
-    if (currentMode == MODE_GAME) { //game mode
-        //clear all positions
-        for (int i = 0; i < current_chips; i++) {
-            pos1[i] = 0;
-            pos2[i] = 0;
-            pos3[i] = 0;
-            pos4[i] = 0;
-        }
-
-        //clear all docks
-        for (int i = 0; i < current_docks; i++) {
-            docks1[i] = 0;
-            docks2[i] = 0;
-            docks3[i] = 0;
-            docks4[i] = 0;
-        }
-
-        //clear dockOrder
-        for (int i = 0; i < usable_docks; i++) {
-            dockOrder[i] = 0;
-        }
+    //clear all positions
+    for (int i = 0; i < current_chips; i++) {
+        pos1[i] = 0;
+        pos2[i] = 0;
+        pos3[i] = 0;
+        pos4[i] = 0;
     }
-    else if (currentAmount == AMOUNT_ONE) { //calculation mode: amount one
-        //clear all positions
-        for (int i = 0; i < current_chips; i++) {
-            pos1[i] = 0;
-            pos2[i] = 0;
-            pos3[i] = 0;
-            pos4[i] = 0;
-        }
 
-        //clear all docks
-        for (int i = 0; i < current_docks; i++) {
-            docks1[i] = 0;
-            docks2[i] = 0;
-            docks3[i] = 0;
-            docks4[i] = 0;
-        }
+    //clear all docks
+    for (int i = 0; i < current_docks; i++) {
+        docks1[i] = 0;
+        docks2[i] = 0;
+        docks3[i] = 0;
+        docks4[i] = 0;
     }
-    else { //calculation modes
+
+    if (currentMode != MODE_GAME && currentAmount != AMOUNT_ONE) { //calculation modes
         //pos1: leader position
         //pos2: mirror position
         //pos3: current position
@@ -1069,6 +1335,33 @@ void inputSettings() {
     } while (accept != 'y');
 }
 
+//checks whether two positions are mirrors.
+//mirror positions are when a position can be flipped to find the other one.
+bool isMirrorPosition(int pos1Docks[], int pos2Docks[]) {
+    bool isMirror = true;
+
+    if (usable_docks % 2 == 1) { //odd usable docks
+        //i goes from 1 to (int) usable_docks / 2 (5 for 11 usable_docks)
+        for (int i = 1; i <= usable_docks / 2; i++) {
+            if ((pos1Docks[middle[0] - i] != pos2Docks[middle[0] - i] || pos1Docks[middle[0] + i] != pos2Docks[middle[0] + i]) && (pos1Docks[middle[0] - i] != pos2Docks[middle[0] + i] || pos1Docks[middle[0] + i] != pos2Docks[middle[0] - i])) {
+                isMirror = false;
+                break;
+            }
+        }
+    }
+    else { //even usable docks
+        //i goes from 0 to < usable_docks / 2 (4 for 10 usable_docks)
+        for (int i = 0; i < usable_docks / 2; i++) {
+            if ((pos1Docks[middle[0] - i] != pos2Docks[middle[0] - i] || pos1Docks[middle[1] + i] != pos2Docks[middle[1] + i]) && (pos1Docks[middle[0] - i] != pos2Docks[middle[1] + i] || pos1Docks[middle[1] + i] != pos2Docks[middle[0] - i])) {
+                isMirror = false;
+                break;
+            }
+        }
+    }
+
+    return isMirror;
+}
+
 //checks whether two positions are identical.
 bool isSamePosition(int pos1Docks[], int pos2Docks[]) {
     bool isSame = true;
@@ -1097,6 +1390,17 @@ bool isSameRollCombo(int combo1[], int combo2[]) {
     return isSame;
 }
 
+//checks whether a position is valid for computing based on the current speed.
+bool isValidPosition(int pos[], int posDocks[]) {
+    bool isValid = true;
+
+    if (currentSpeed >= SPEED_3) {
+        isValid = true;
+    }
+
+    return isValid;
+}
+
 //finds the dock with the most chips and returns the number of chips.
 int maxDock(int docks[]) {
     int max = 0;
@@ -1108,6 +1412,34 @@ int maxDock(int docks[]) {
     }
 
     return max;
+}
+
+//sets the new leader position.
+void newLeader(int pos[], int posDocks[], int leaderPos[], int leaderDocks[]) {
+    fprintf(txtfile, "| New Leader\n");
+    
+    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+        leaderCounter = positionCounter;
+    }
+    else if (currentStep == STEP_RESTART) {
+        restartLeaderCounter = restartCounter;
+    }
+    copyPosition(pos, posDocks, leaderPos, leaderDocks);
+    printf("New Leader found at Position %d!\n", leaderCounter + 1);
+}
+
+//sets the new mirror position.
+void newMirror(int pos[], int posDocks[], int mirrorPos[], int mirrorDocks[]) {
+    fprintf(txtfile, "| New Mirror\n");
+    
+    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+        mirrorCounter = positionCounter;
+    }
+    else if (currentStep == STEP_RESTART) {
+        restartMirrorCounter = restartCounter;
+    }
+    copyPosition(pos, posDocks, mirrorPos, mirrorDocks);
+    printf("New Mirror found at Position %d!\n", mirrorCounter + 1);
 }
 
 //finds the next position to help enumerate all possible initial positions.
@@ -1139,7 +1471,7 @@ void nextPosition(int pos[], int posDocks[], int dockOrder[]) {
         //idx1 = index of pos[idx2] in dock order
         //move forward pos[idx2] and succeeding chips in dockorder
         for (int i = idx2; i < current_chips; i++) {
-            pos[idx2] = dockOrder[idx1 + 1] + 1;
+            pos[i] = dockOrder[idx1 + 1] + 1;
         }
     }
 
@@ -1280,12 +1612,13 @@ void playGame(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], double p
 }
 
 //converts position (chip or dock format) into a string
-void posToString(int pos[], char output[], int mode) {
-    switch (mode) {
+void posToString(int pos[], char output[]) {
+    switch (currentStringMode) {
         case (STRING_CHIPS):
             for (int i = 0; i < current_chips; i++) {
                 output[i] = DOCK_STRING[pos[i] - 1];
             }
+            output[current_chips] = '\0';
             break;
         case (STRING_DOCKS):
             for (int i = 0; i < current_docks; i++) {
@@ -1296,6 +1629,7 @@ void posToString(int pos[], char output[], int mode) {
                     output[i] = DOCK_STRING[pos[i] - 1];
                 }
             }
+            output[current_docks] = '\0';
             break;
         default:
             printf("Invalid mode.\n");
@@ -1325,53 +1659,55 @@ int powInt(int x, int y) {
 
 //prints the settings to console and later, to file.
 void printSettings() {
-    displayTitle();
+    fprintf(txtfile, "-------------------\n");
+    fprintf(txtfile, "River Crossing Game\n");
+    fprintf(txtfile, "-------------------\n\n");
 
     //print dice, faces, chips
-    printf("Number of Dice: %d\n", dice);
-    printf("Number of Faces: %d\n", faces);
-    printf("Number of Chips: %d\n", current_chips);
-    printf("-----\n");
+    fprintf(txtfile, "Number of Dice: %d\n", dice);
+    fprintf(txtfile, "Number of Faces: %d\n", faces);
+    fprintf(txtfile, "Number of Chips: %d\n", current_chips);
+    fprintf(txtfile, "-----\n");
 
     //print mode, amount, speed, interval
     //print mode
     switch (currentMode) {
         case (MODE_GRECURSIVE):
-            printf("Mode: [1] g Function: Recursive Method\n");
+            fprintf(txtfile, "Mode: [1] g Function: Recursive Method\n");
             break;
         case (MODE_GNONRECURSIVE):
-            printf("Mode: [2] g Function: Non-Recursive Method\n");
+            fprintf(txtfile, "Mode: [2] g Function: Non-Recursive Method\n");
             break;
         case (MODE_GSIMULATION):
-            printf("Mode: [3] g Function: Simulation Method\n");
+            fprintf(txtfile, "Mode: [3] g Function: Simulation Method\n");
             break;
         case (MODE_GALL):
-            printf("Mode: [4] g Function: All Methods\n");
+            fprintf(txtfile, "Mode: [4] g Function: All Methods\n");
             break;
         case (MODE_EDRECURSIVE):
-            printf("Mode: [5] Expected Duration: Recursive Method\n");
+            fprintf(txtfile, "Mode: [5] Expected Duration: Recursive Method\n");
             break;
         case (MODE_EDSIMULATION):
-            printf("Mode: [6] Expected Duration: Simulation Method\n");
+            fprintf(txtfile, "Mode: [6] Expected Duration: Simulation Method\n");
             break;
         case (MODE_EDBOTH):
-            printf("Mode: [7] Expected Duration: Both Methods\n");
+            fprintf(txtfile, "Mode: [7] Expected Duration: Both Methods\n");
             break;
         default:
-            printf("Invalid mode.\n");
+            fprintf(txtfile, "Invalid mode.\n");
     }
 
     //print amount
     if (currentMode != MODE_GALL && currentMode != MODE_EDBOTH) {
         switch (currentAmount) {
             case (AMOUNT_ONE):
-                printf("Amount: [1] One Position\n");
+                fprintf(txtfile, "Amount: [1] One Position\n");
                 break;
             case (AMOUNT_ALL):
-                printf("Amount: [2] All Positions\n");
+                fprintf(txtfile, "Amount: [2] All Positions\n");
                 break;
             default:
-                printf("Invalid amount.\n");
+                fprintf(txtfile, "Invalid amount.\n");
         }
     }
 
@@ -1379,25 +1715,25 @@ void printSettings() {
     if (currentAmount == AMOUNT_ALL) {
         switch (currentSpeed) {
             case (SPEED_1):
-                printf("Speed: [1] Speed 1: No positions skipped.\n");
+                fprintf(txtfile, "Speed: [1] Speed 1: No positions skipped.\n");
                 break;
             case (SPEED_2):
-                printf("Speed: [2] Speed 2: Positions with no chips in the middle skipped.\n");
+                fprintf(txtfile, "Speed: [2] Speed 2: Positions with no chips in the middle skipped.\n");
                 break;
             case (SPEED_3):
-                printf("Speed: [3] Speed 3: Positions with gaps are also skipped.\n");
+                fprintf(txtfile, "Speed: [3] Speed 3: Positions with gaps are also skipped.\n");
                 break;
             case (SPEED_4):
-                printf("Speed: [4] Speed 4: Positions which are not symmetric are also skipped.\n");
+                fprintf(txtfile, "Speed: [4] Speed 4: Positions which are not symmetric are also skipped.\n");
                 break;
             case (SPEED_5):
-                printf("Speed: [5] Speed 5: Positions that don't have most chips in the middle are also skipped.\n");
+                fprintf(txtfile, "Speed: [5] Speed 5: Positions that don't have most chips in the middle are also skipped.\n");
                 break;
             case (SPEED_6):
-                printf("Speed: [6] Speed 6: Positions are reduced to improve calculation time.\n");
+                fprintf(txtfile, "Speed: [6] Speed 6: Positions are reduced to improve calculation time.\n");
                 break;
             default:
-                printf("Invalid speed.\n");
+                fprintf(txtfile, "Invalid speed.\n");
         }
     }
 
@@ -1405,30 +1741,30 @@ void printSettings() {
     if (currentAmount == AMOUNT_ALL || currentMode == MODE_GSIMULATION || currentMode == MODE_GALL || currentMode == MODE_EDSIMULATION || currentMode == MODE_EDBOTH) {
         switch (currentInterval) {
             case (INTERVAL_EXTRATINY):
-                printf("Interval: [1] Extra Tiny: 1\n");
+                fprintf(txtfile, "Interval: [1] Extra Tiny: 1\n");
                 break;
             case (INTERVAL_TINY):
-                printf("Interval: [2] Tiny: 10\n");
+                fprintf(txtfile, "Interval: [2] Tiny: 10\n");
                 break;
             case (INTERVAL_SMALL):
-                printf("Interval: [3] Small: 100\n");
+                fprintf(txtfile, "Interval: [3] Small: 100\n");
                 break;
             case (INTERVAL_MEDIUM):
-                printf("Interval: [4] Medium: 1000\n");
+                fprintf(txtfile, "Interval: [4] Medium: 1000\n");
                 break;
             case (INTERVAL_BIG):
-                printf("Interval: [5] Big: 10000\n");
+                fprintf(txtfile, "Interval: [5] Big: 10000\n");
                 break;
             case (INTERVAL_HUGE):
-                printf("Interval: [6] Huge: 100000\n");
+                fprintf(txtfile, "Interval: [6] Huge: 100000\n");
                 break;
             case (INTERVAL_MASSIVE):
-                printf("Interval: [7] Massive: 1000000\n");
+                fprintf(txtfile, "Interval: [7] Massive: 1000000\n");
             default:
-                printf("Invalid interval.\n");
+                fprintf(txtfile, "Invalid interval.\n");
         }
     }
-    printf("--------------------\n\n");
+    fprintf(txtfile, "-----\n\n");
 }
 
 //removes a chip from a specific dock.
@@ -1549,7 +1885,7 @@ void setupDockOrder(int dockOrder[]) {
                 dockOrder[i] = middle[0] - (i / 2);
             }
             else { //right
-                dockOrder[i] = middle[1] + ((i + 1) / 2);
+                dockOrder[i] = middle[1] + ((i - 1) / 2);
             }
         }
     }
@@ -1590,4 +1926,17 @@ void setupProbabilities(double prob[], int numDice) {
             prob[i] /= faces;
         }
     }
+}
+
+//stops the timer and finds the elapsed time.
+//elapsed time is printed both to console and to text file.
+void stopTimer() {
+    double elapsedTime = 0;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+ 
+    elapsedTime += (end.tv_sec - start.tv_sec);
+    elapsedTime += (end.tv_nsec - start.tv_nsec) * 1e-9;
+ 
+    printf("Computation Time: %.9lf seconds\n", elapsedTime);
+    fprintf(txtfile, "Computation Time: %.9lf seconds\n", elapsedTime);
 }
