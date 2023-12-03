@@ -430,7 +430,6 @@ bool checkHasGap(int posDocks[]) {
     return hasGap;
 }
 
-
 //checks whether the dock with the most chips is in the middle.
 bool checkMaxMiddle(int posDocks[]) {
     bool maxMiddle = true;
