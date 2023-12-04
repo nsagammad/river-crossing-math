@@ -475,6 +475,7 @@ bool checkMaxMiddle(int posDocks[]) {
 //a position is symmetric when it is symmetric (or almost symmetric) with respect to the middle dock.
 bool checkSymmetric(int posDocks[]) {
     bool symmetric = true;
+    bool found = false;
     int endidx = 0;
 
     //find middle has already been called, so middle[] is set.
@@ -487,9 +488,12 @@ bool checkSymmetric(int posDocks[]) {
 
     //check docks
     for (int i = 0; i < endidx; i++) {
-        if ((posDocks[middle[0] - i] - posDocks[middle[1] + i] > 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] > 1)) {
+        if (((posDocks[middle[0] - i] - posDocks[middle[1] + i] >= 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] >= 1)) && found) {
             symmetric = false;
             break;
+        }
+        else if ((posDocks[middle[0] - i] - posDocks[middle[1] + i] == 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] == 1)) {
+            found = true;
         }
     }
 
@@ -718,45 +722,47 @@ void edIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirror
     char dockString[current_docks + 1];
     bool isValid = isValidPosition(pos, posDocks);
 
-    switch (currentMode) {
-        case (MODE_EDRECURSIVE):
-            edValue = expectedDurationRecursive(pos, posDocks, prob);
-            break;
-        case (MODE_EDSIMULATION):
-            edValue = expectedDurationSimulation(pos, posDocks);
-            break;
-        default:
-            printf("Invalid mode.\n");
-    }
+    if (isValid) {
+        switch (currentMode) {
+            case (MODE_EDRECURSIVE):
+                edValue = expectedDurationRecursive(pos, posDocks, prob);
+                break;
+            case (MODE_EDSIMULATION):
+                edValue = expectedDurationSimulation(pos, posDocks);
+                break;
+            default:
+                printf("Invalid mode.\n");
+        }
 
-    //print positions
-    currentStringMode = STRING_DOCKS;
-    posToString(leaderDocks, dockString);
-    if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
-        fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
-    }
-    currentStringMode = STRING_DOCKS;
-    posToString(posDocks, dockString);
-    fprintf(txtfile, "%s | %lf ", dockString, edValue);
+        //print positions
+        currentStringMode = STRING_DOCKS;
+        posToString(leaderDocks, dockString);
+        if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
+            fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
+        }
+        currentStringMode = STRING_DOCKS;
+        posToString(posDocks, dockString);
+        fprintf(txtfile, "%s | %lf ", dockString, edValue);
 
-    //find result
-    if (positionCounter == 0) {
-        //first leader
-        bestEd = edValue;
-        newLeader(pos, posDocks, leaderPos, leaderDocks);
-    }
-    else if (edValue < bestEd && !isMirrorPosition(leaderDocks, posDocks)) {
-        //new leader
-        bestEd = edValue;
-        newLeader(pos, posDocks, leaderPos, leaderDocks);
-    }
-    else if (edValue == bestEd || isMirrorPosition(leaderDocks, posDocks)) {
-        //new mirror
-        newMirror(pos, posDocks, mirrorPos, mirrorDocks);
-    }
-    else {
-        //no change
-        fprintf(txtfile, "|\n");
+        //find result
+        if (positionCounter == 0) {
+            //first leader
+            bestEd = edValue;
+            newLeader(pos, posDocks, leaderPos, leaderDocks);
+        }
+        else if (edValue < bestEd && !isMirrorPosition(leaderDocks, posDocks)) {
+            //new leader
+            bestEd = edValue;
+            newLeader(pos, posDocks, leaderPos, leaderDocks);
+        }
+        else if (edValue == bestEd || isMirrorPosition(leaderDocks, posDocks)) {
+            //new mirror
+            newMirror(pos, posDocks, mirrorPos, mirrorDocks);
+        }
+        else {
+            //no change
+            fprintf(txtfile, "|\n");
+        }
     }
 
     //interval
