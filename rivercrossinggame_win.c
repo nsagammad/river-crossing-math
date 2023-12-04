@@ -456,14 +456,14 @@ bool checkMaxMiddle(int posDocks[]) {
 
     //check docks
     for (int i = 1; i < endidx; i++) {
-        if ((posDocks[middle[0] - i] > maxChips) || (posDocks[middle[1] + 1] > maxChips)) {
+        if ((posDocks[middle[0] - i] > maxChips) || (posDocks[middle[1] + i] > maxChips)) {
             maxMiddle = false;
             break;
         }
         else if (posDocks[middle[0] - i] <= posDocks[middle[1] + i]) { //set new value of maxChips
             maxChips = posDocks[middle[0] - i];
         }
-        else {
+        else if (posDocks[middle[1] + i] < posDocks[middle[0] - i]) {
             maxChips = posDocks[middle[1] + i];
         }
     }
@@ -488,12 +488,20 @@ bool checkSymmetric(int posDocks[]) {
 
     //check docks
     for (int i = 0; i < endidx; i++) {
-        if (((posDocks[middle[0] - i] - posDocks[middle[1] + i] >= 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] >= 1)) && found) {
+        //find pairs of docks with a difference greater than 1.
+        if ((posDocks[middle[0] - i] - posDocks[middle[1] + i] > 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] > 1)) {
             symmetric = false;
             break;
         }
+        //find pairs of docks with a difference of 1.
         else if ((posDocks[middle[0] - i] - posDocks[middle[1] + i] == 1) || (posDocks[middle[1] + i] - posDocks[middle[0] - i] == 1)) {
-            found = true;
+            if (found) {
+                symmetric = false;
+                break;
+            }
+            else {
+                found = true;
+            }
         }
     }
 
@@ -1666,13 +1674,13 @@ bool isValidPosition(int pos[], int posDocks[]) {
         }
     }
     if (currentSpeed >= SPEED_4) {
-        isValid = checkSymmetric(posDocks);
+        isValid = isValid && checkSymmetric(posDocks);
         if (isValid && currentStep != STEP_RESTART) {
             symmetricPositions++;
         }
     }
     if (currentSpeed >= SPEED_5) {
-        isValid = checkMaxMiddle(posDocks);
+        isValid = isValid && checkMaxMiddle(posDocks);
         if (isValid && currentStep != STEP_RESTART) {
             maxMiddlePositions++;
         }
