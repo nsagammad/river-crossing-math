@@ -39,6 +39,7 @@ void gFunctionSimulation(int[], int[], int[], int[], double[]);
 void gIteration(int[], int[], int[], int[], int[], int[], int[], double[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[], int[]);
 void inputSettings();
+void inputSettingsRoundRobin();
 bool isMirrorPosition(int[], int[]);
 bool isSamePosition(int[], int[]);
 bool isSameRollCombo(int[], int[]);
@@ -240,29 +241,20 @@ int main() {
     }
     //function testing
     else if (choice1 == 'g') {
-        printf("Welcome to function testing mode\n");
-        printf("Here is where I place all my function tests.\n");
-        //remember to remove this in the final version
-        //unless i use this for roundrobin mode
-
-        current_chips = 4;
-        current_docks = 12;
-        int pos1[4] = {5, 6, 7, 8};
-        int pos1Docks[12] = {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
-        int pos2[4] = {5, 6, 7, 7};
-        int pos2Docks[12] = {0, 0, 0, 0, 1, 1, 2, 0, 0, 0, 0, 0};
-        double probabilities[current_docks];
-        setupProbabilities(probabilities, dice);
-
-        double gFunction[3];
-        gFunctionRecursive(pos1, pos1Docks, pos2, pos2Docks, probabilities, gFunction);
-        printf("Recursive: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
-        gFunctionSimulation(pos1, pos1Docks, pos2, pos2Docks, gFunction);
-        printf("Simulation: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
-        gFunctionNonRecursive(pos1, pos1Docks, pos2, pos2Docks, probabilities, gFunction);
-        printf("Non-Recursive: g(A, B) = {%lf, %lf, %lf}\n", gFunction[0], gFunction[1], gFunction[2]);
-
         currentMode = MODE_GROUNDROBIN;
+
+        //input settings
+        inputSettingsRoundRobin();
+        buildFilename();
+        csvfile = fopen(filename, "w");
+
+        //print headers
+        fprintf(csvfile, "ID,"); //positionCounter
+        for (int i = 1; i <= current_docks; i++) { //chips in docks
+            fprintf(csvfile, "Dock %d,", i);
+        }
+
+        fclose(csvfile);
     }
     else if (choice1 == 'x') {
         printf("Exit the program\n");
@@ -322,6 +314,9 @@ void buildFilename() {
         case (MODE_EDSIMULATION):
             strcat(filename, " Expected Duration Simulation");
             break;
+        case (MODE_GROUNDROBIN):
+            strcat(filename, "g Function Round Robin");
+            break;
         default:
             strcat(filename, " no mode");
     }
@@ -329,25 +324,33 @@ void buildFilename() {
     //speed
     switch (currentSpeed) {
         case (SPEED_1):
-            strcat(filename, " Speed 1.txt");
+            strcat(filename, " Speed 1");
             break;
         case (SPEED_2):
-            strcat(filename, " Speed 2.txt");
+            strcat(filename, " Speed 2");
             break;
         case (SPEED_3):
-            strcat(filename, " Speed 3.txt");
+            strcat(filename, " Speed 3");
             break;
         case (SPEED_4):
-            strcat(filename, " Speed 4.txt");
+            strcat(filename, " Speed 4");
             break;
         case (SPEED_5):
-            strcat(filename, " Speed 5.txt");
+            strcat(filename, " Speed 5");
             break;
         case (SPEED_6):
-            strcat(filename, " Speed 6.txt");
+            strcat(filename, " Speed 6");
             break;
         default:
-            strcat(filename, " no speed.txt");
+            strcat(filename, " no speed");
+    }
+
+    //filetype
+    if (currentMode == MODE_GROUNDROBIN) {
+        strcat(filename, ".csv");
+    }
+    else {
+        strcat(filename, ".txt");
     }
 
     printf("Filename: %s\n", filename);
@@ -1589,11 +1592,103 @@ void inputSettings() {
             printf("[5] Big: 10000\n");
             printf("[6] Huge: 100000\n");
             printf("[7] Massive: 1000000\n");
-            printf("Enter Speed: ");
+            printf("Enter Interval: ");
             scanf(" %c", &setting);
             int interval = setting - '0';
             while (interval < 1 || interval > 7) {
+                printf("Invalid interval. Enter interval: ");
+                scanf(" %c", &setting);
+                interval = setting - '0';
+            }
+            //convert to currentInterval
+            currentInterval = powInt(10, interval - 1);
+        }
+
+        //ask for settings approval
+        printf("\n----------\n");
+        printf("Press [y] to accept these settings. Other input will repeat the settings input. ");
+        scanf(" %c", &accept);
+    } while (accept != 'y');
+}
+
+//lets the user input settings for round robin mode.
+void inputSettingsRoundRobin() {
+    char setting = 0;
+    char accept = 'x';
+    do {
+        displayTitle();
+            
+        //input dice, faces, current chips
+        printf("Input number of dice: ");
+        scanf(" %d", &dice);
+        printf("Input number of faces per die: ");
+        scanf(" %d", &faces);
+        current_docks = dice * faces;
+        usable_docks = current_docks - dice + 1;
+        //check for invalid input
+        while (dice <= 0 || faces <= 0 || current_docks > MAX_CHIPS_DOCKS) {
+            printf("Invalid dice information.\n");
+            printf("Input number of dice: ");
+            scanf(" %d", &dice);
+            printf("Input number of faces per die: ");
+            scanf(" %d", &faces);
+            current_docks = dice * faces;
+            usable_docks = current_docks - dice + 1;
+        }
+        printf("Input number of chips: ");
+        scanf(" %d", &current_chips);
+        //check for invalid input
+        while (current_chips <= 0 || current_chips > MAX_CHIPS_DOCKS) {
+            printf("Invalid number of chips.\n");
+            printf("Input number of chips: ");
+            scanf(" %d", &current_chips);
+        }
+
+        //input mode, amount, speed, interval
+        //mode is locked to g recursive.
+        currentMode = MODE_GRECURSIVE;
+
+        //amount is locked to all
+        currentAmount = AMOUNT_ALL;
+
+        //input speed
+        //only valid for all positions.
+        if (currentAmount == AMOUNT_ALL) {
+            printf("-----\n");
+            printf("Speed\n");
+            printf("[1] Speed 1: No positions skipped.\n");
+            printf("[2] Speed 2: Positions with no chips in the middle skipped.\n");
+            printf("[3] Speed 3: Positions with gaps are also skipped.\n");
+            printf("[4] Speed 4: Positions which are not symmetric are also skipped.\n");
+            printf("[5] Speed 5: Positions that don't have most chips in the middle are also skipped.\n");
+            printf("[6] Speed 6: Positions are reduced to improve calculation time.\n");
+            printf("Enter Speed: ");
+            scanf(" %c", &setting);
+            currentSpeed = setting - '0';
+            while (currentSpeed < 1 || currentSpeed > 6) {
                 printf("Invalid speed. Enter speed: ");
+                scanf(" %c", &setting);
+                currentSpeed = setting - '0';
+            }
+        }
+
+        //input interval
+        //only valid for simulation modes and all positions.
+        if (currentAmount == AMOUNT_ALL || currentMode == MODE_GSIMULATION || currentMode == MODE_GALL || currentMode == MODE_EDSIMULATION || currentMode == MODE_EDBOTH) {
+            printf("-----\n");
+            printf("Interval\n");
+            printf("[1] Extra Tiny: 1\n");
+            printf("[2] Tiny: 10\n");
+            printf("[3] Small: 100\n");
+            printf("[4] Medium: 1000\n");
+            printf("[5] Big: 10000\n");
+            printf("[6] Huge: 100000\n");
+            printf("[7] Massive: 1000000\n");
+            printf("Enter Interval: ");
+            scanf(" %c", &setting);
+            int interval = setting - '0';
+            while (interval < 1 || interval > 7) {
+                printf("Invalid interval. Enter interval: ");
                 scanf(" %c", &setting);
                 interval = setting - '0';
             }
