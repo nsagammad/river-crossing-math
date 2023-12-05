@@ -33,10 +33,12 @@ double factorial(int);
 void findMiddle(int[]);
 void gameInputChips(int[], int[]);
 void gCompute(int[], int[], int[], int[], int[], int[], int[], int[], int[], double[], double[]);
+void gComputeRoundRobin(int[], int[], int[], int[], int[], int[], int[], double[], double[]);
 void gFunctionNonRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionRecursive(int[], int[], int[], int[], double[], double[]);
 void gFunctionSimulation(int[], int[], int[], int[], double[]);
 void gIteration(int[], int[], int[], int[], int[], int[], int[], double[], double[]);
+void gIterationRoundRobin(int[], int[], int[], int[], int[], double[], double[]);
 void initializePositions(int[], int[], int[], int[], int[], int[], int[], int[], int[]);
 void inputSettings();
 void inputSettingsRoundRobin();
@@ -251,8 +253,35 @@ int main() {
         //print headers
         fprintf(csvfile, "ID,"); //positionCounter
         for (int i = 1; i <= current_docks; i++) { //chips in docks
-            fprintf(csvfile, "Dock %d,", i);
+            fprintf(csvfile, "Pos1Dock%d,", i);
         }
+        for (int i = 1; i <= current_docks; i++) { //chips in docks
+            fprintf(csvfile, "Pos2Dock%d,", i);
+        }
+        fprintf(csvfile, "Output0,Output1,Output2\n"); //g function values
+
+        //position and dock arrays
+        int position1[current_chips];
+        int pos1Docks[current_docks];
+        int position2[current_chips];
+        int pos2Docks[current_docks];
+        int finalPosition[current_chips];
+        int finalDocks[current_docks];
+        int position3[current_chips]; //dummy array for initialize positions
+        int pos3Docks[current_docks];
+        //dock order and probability arrays
+        int dockOrder[usable_docks];
+        double probabilities[current_docks];
+        //g output array
+        double gFunction[3];
+
+        findMiddle(middle);
+        setupDockOrder(dockOrder);
+        initializePositions(position1, pos1Docks, position2, pos2Docks, position3, pos3Docks, finalPosition, finalDocks, dockOrder);
+        setupProbabilities(probabilities, dice);
+
+        //let's go
+        gComputeRoundRobin(position1, pos1Docks, position2, pos2Docks, finalPosition, finalDocks, dockOrder, probabilities, gFunction);
 
         fclose(csvfile);
     }
@@ -315,7 +344,7 @@ void buildFilename() {
             strcat(filename, " Expected Duration Simulation");
             break;
         case (MODE_GROUNDROBIN):
-            strcat(filename, "g Function Round Robin");
+            strcat(filename, " g Function Round Robin");
             break;
         default:
             strcat(filename, " no mode");
@@ -959,10 +988,7 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
     int restartMirrorPos[current_chips];
     int restartMirrorDocks[current_docks];
     
-    if (currentMode == MODE_GROUNDROBIN) {
-        //most intense mode
-    }
-    else if (currentAmount == AMOUNT_ONE) {
+    if (currentAmount == AMOUNT_ONE) {
         int ctr = 0;
         //ask for user input for positions
         //get both positions
@@ -1147,6 +1173,41 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
 
         stopTimer();
     }
+}
+
+//computes the g Function values for all positions against all positions.
+void gComputeRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], int finalPos[], int finalDocks[], int dockOrder[], double prob[], double output[]) {
+    positionCounter = 0;
+    maxPositions = combination(usable_docks + current_chips - 1, current_chips);
+    middleChipPositions = combination(usable_docks + current_chips - 2, current_chips - 1);
+    int idx1 = 0;
+    int endidx;
+
+    //get endidx
+    if (currentSpeed == SPEED_1) {
+        endidx = maxPositions;
+    }
+    else if (currentSpeed >= SPEED_2) {
+        endidx = middleChipPositions;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    for (int i = 0; i < endidx; i++) {
+        for (int j = idx1; j < endidx; j++) {
+            gIterationRoundRobin(pos1, pos1Docks, pos2, pos2Docks, dockOrder, prob, output);
+            if (j < endidx - 1) {
+                nextPosition(pos2, pos2Docks, dockOrder);
+            }
+        }
+        if (i < endidx - 1) {
+            nextPosition(pos1, pos1Docks, dockOrder);
+            copyPosition(pos1, pos1Docks, pos2, pos2Docks);
+            idx1++;
+        }
+    }
+
+    stopTimer();
 }
 
 //computes the probabilities of the game outcomes using a non-recursive method
@@ -1440,6 +1501,61 @@ void gIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorD
     }
 }
 
+//performs the g function calculation for 1 iteration of the round robin.
+void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks[], int dockOrder[], double prob[], double output[]) {
+    bool isValid1 = isValidPosition(pos1, pos1Docks);
+    bool isValid2 = isValidPosition(pos2, pos2Docks);
+    int pos1Copy[current_chips];
+    int pos1CopyDocks[current_docks];
+    int pos2Copy[current_chips];
+    int pos2CopyDocks[current_docks];
+
+    if (isValid1 && isValid2) {
+        copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
+        copyPosition(pos2, pos2Docks, pos2Copy, pos2CopyDocks);
+
+        //default speed 6: reduced positions
+        reducePositions(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks);
+
+        //compute game outcomes
+        gFunctionRecursive(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
+
+        //print positions
+        fprintf(csvfile, "%d,", positionCounter); //ID
+        for (int i = 0; i < current_docks; i++) { //position 1
+            fprintf(csvfile, "%d,", pos1Docks[i]);
+        }
+        for (int i = 0; i < current_docks; i++) { //position 2
+            fprintf(csvfile, "%d,", pos2Docks[i]);
+        }
+        //output[]
+        fprintf(csvfile, "%lf,%lf,%lf\n", output[0], output[1], output[2]);
+        positionCounter++;
+
+        if ((positionCounter) % currentInterval == 0) {
+            printf("Done with %d positions.\n", positionCounter);
+        }
+
+        if (!isSamePosition(pos1Docks, pos2Docks)) {
+            //print positions
+            fprintf(csvfile, "%d,", positionCounter); //ID
+            for (int i = 0; i < current_docks; i++) { //position 1
+                fprintf(csvfile, "%d,", pos2Docks[i]);
+            }
+            for (int i = 0; i < current_docks; i++) { //position 2
+                fprintf(csvfile, "%d,", pos1Docks[i]);
+            }
+            //output[]
+            fprintf(csvfile, "%lf,%lf,%lf\n", output[1], output[0], output[2]);
+            positionCounter++;
+
+            if ((positionCounter) % currentInterval == 0) {
+                printf("Done with %d positions.\n", positionCounter);
+            }
+        }
+    }
+}
+
 //initializes the arrays for the positions and docks.
 void initializePositions(int pos1[], int docks1[], int pos2[], int docks2[], int pos3[], int docks3[], int pos4[], int docks4[], int dockOrder[]) {
     //clear all positions
@@ -1645,8 +1761,8 @@ void inputSettingsRoundRobin() {
         }
 
         //input mode, amount, speed, interval
-        //mode is locked to g recursive.
-        currentMode = MODE_GRECURSIVE;
+        //mode is locked to g round robin.
+        currentMode = MODE_GROUNDROBIN;
 
         //amount is locked to all
         currentAmount = AMOUNT_ALL;
@@ -2347,5 +2463,7 @@ void stopTimer() {
     elapsedTime += (end.tv_nsec - start.tv_nsec) * 1e-9;
  
     printf("Computation Time: %.9lf seconds\n", elapsedTime);
-    fprintf(txtfile, "-----\nComputation Time: %.9lf seconds\n", elapsedTime);
+    if (currentMode != MODE_GROUNDROBIN) {
+        fprintf(txtfile, "-----\nComputation Time: %.9lf seconds\n", elapsedTime);
+    }
 }
