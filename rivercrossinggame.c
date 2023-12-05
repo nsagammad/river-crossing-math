@@ -251,7 +251,7 @@ int main() {
         csvfile = fopen(filename, "w");
 
         //print headers
-        fprintf(csvfile, "ID,"); //positionCounter
+        fprintf(csvfile, "ID,Chips,"); //positionCounter
         for (int i = 1; i <= current_docks; i++) { //chips in docks
             fprintf(csvfile, "Pos1Dock%d,", i);
         }
@@ -1509,6 +1509,8 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
     int pos1CopyDocks[current_docks];
     int pos2Copy[current_chips];
     int pos2CopyDocks[current_docks];
+    char posString[current_chips + 1];
+    currentStringMode = STRING_CHIPS;
 
     if (isValid1 && isValid2) {
         copyPosition(pos1, pos1Docks, pos1Copy, pos1CopyDocks);
@@ -1522,6 +1524,8 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
 
         //print positions
         fprintf(csvfile, "%d,", positionCounter); //ID
+        posToString(pos1, posString);
+        fprintf(csvfile, "\"%s\",", posString); //posToString
         for (int i = 0; i < current_docks; i++) { //position 1
             fprintf(csvfile, "%d,", pos1Docks[i]);
         }
@@ -1529,7 +1533,7 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
             fprintf(csvfile, "%d,", pos2Docks[i]);
         }
         //output[]
-        fprintf(csvfile, "%lf,%lf,%lf\n", output[0], output[1], output[2]);
+        fprintf(csvfile, "%.15lf,%.15lf,%.15lf\n", output[0], output[1], output[2]);
         positionCounter++;
 
         if ((positionCounter) % currentInterval == 0) {
@@ -1539,6 +1543,8 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
         if (!isSamePosition(pos1Docks, pos2Docks)) {
             //print positions
             fprintf(csvfile, "%d,", positionCounter); //ID
+            posToString(pos2, posString);
+            fprintf(csvfile, "\"%s\",", posString); //posToString
             for (int i = 0; i < current_docks; i++) { //position 1
                 fprintf(csvfile, "%d,", pos2Docks[i]);
             }
@@ -1546,7 +1552,7 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
                 fprintf(csvfile, "%d,", pos1Docks[i]);
             }
             //output[]
-            fprintf(csvfile, "%lf,%lf,%lf\n", output[1], output[0], output[2]);
+            fprintf(csvfile, "%.15lf,%.15lf,%.15lf\n", output[1], output[0], output[2]);
             positionCounter++;
 
             if ((positionCounter) % currentInterval == 0) {
