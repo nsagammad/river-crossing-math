@@ -2,8 +2,10 @@ import java.util.ArrayList;
 
 public class Position {
     //character representations of numbers 1 through 35.
+    //character representations of numbers 1 through 35.
     private final String DOCK_STRING = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+    //arrayList of Docks.
     //probabilities per dock.
     private static ArrayList<Double> probabilities = new ArrayList<Double>();
 
@@ -12,8 +14,15 @@ public class Position {
     //number of chips in the position.
     private int count;
 
+    //middle of the position.
+    private static int[] middle = {0, 0};
+    //current number of docks.
+    private static int currentDocks = 12;
+    //current number of usable docks.
+    private static int usableDocks = 11;
+
     //constructor
-    public Position(int dice, int currentDocks) {
+    public Position(int dice) {
         for (int i = 0; i < currentDocks; i++) {
             Dock d = new Dock(false);
             if (i >= dice - 1) {
@@ -39,17 +48,6 @@ public class Position {
         }
     }
 
-    //returns the probability of a certain dock.
-    //dock counting starts at 0.
-    public static double getProbability(int d) {
-        if (!probabilities.isEmpty() && d < probabilities.size()) {
-            return probabilities.get(d);
-        }
-        else {
-            return 0;
-        }
-    }
-
     //returns the number of chips in the position.
     public int getCount() {
         return count;
@@ -71,6 +69,20 @@ public class Position {
         return chipsStr;
     }
 
+    //sets the middle dock numbers based on d(dice).
+    //dock counting starts at 0.
+    public void findMiddle(int d) {
+        //assume that usableDocks has already been set
+        if (usableDocks % 2 == 1) { //odd
+            middle[0] = ((currentDocks + d) / 2) - 1;
+            middle[1] = middle[0];
+        }
+        else { //even
+            middle[0] = ((currentDocks + d - 1) / 2) - 1;
+            middle[1] = ((currentDocks + d + 1) / 2) - 1;
+        }
+    }
+
     //removes num number of chips from dock d.
     //dock counting starts at 0.
     public void removeChip(int d, int num) {
@@ -83,35 +95,9 @@ public class Position {
         }
     }
 
-    //sets up the arraylist of probabilities using dice d and faces f.
-    public void setupProbabilities(int d, int f) {
-        //throw exception if d or f < 1.
-        if (d < 1 || f < 1) {
-            throw new IllegalArgumentException("Dice and Faces should at least be 1");
-        }
-        //dice = 1: trivial case
-        else if (d == 1) {
-            probabilities.clear();
-            for (int i = 0; i < f; i++) {
-                probabilities.add(1 / (double)f);
-            }
-        }
-        //non-trivial case: more than 1 die
-        else if (d > 1) {
-            //use recursion
-            setupProbabilities(d - 1, f);
-
-            //copy over previous values
-            ArrayList<Double> probCopy = new ArrayList<Double>();
-            for (int i = 0; i < probabilities.size(); i++) {
-                probCopy.add(probabilities.get(i));
-            }
-
-            //clear probabilities
-            probabilities.clear();
-
-            //add the values of probcopy
-            
-        }
+    //sets the value of currentDocks and usableDocks.
+    public static void setDocks(int docks, int dice) {
+        currentDocks = docks;
+        usableDocks = currentDocks - dice + 1;
     }
 }
