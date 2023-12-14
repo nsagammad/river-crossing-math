@@ -2,6 +2,7 @@ import java.util.ArrayList;
 
 public class Position {
     //character representations of numbers 1 through 35.
+    //character representations of numbers 1 through 35.
     private final String DOCK_STRING = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     //arrayList of Docks.
