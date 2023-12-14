@@ -2,7 +2,12 @@ import java.util.ArrayList;
 
 public class Position {
     //character representations of numbers 1 through 35.
+    //character representations of numbers 1 through 35.
     private final String DOCK_STRING = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    //arrayList of Docks.
+    //probabilities per dock.
+    private static ArrayList<Double> probabilities = new ArrayList<Double>();
 
     //arrayList of Docks.
     private ArrayList<Dock> docks = new ArrayList<Dock>();
