@@ -8,9 +8,9 @@ public class RiverCrossingGame {
   static Scanner inputScanner = new Scanner(System.in);
 
   //variables
-  static int dice = 0;
-  static int faces = 0;
-  static int currentDocks = 0;
+  static int dice = 2;
+  static int faces = 6;
+  static int currentDocks = 12;
 
   //functions
   //displays the title
@@ -46,16 +46,45 @@ public class RiverCrossingGame {
     } while (currentDocks > MAX_CHIPSDOCKS);
   }
 
+  public static int inputProgramMode() {
+    //initialize
+    int choice = 1;
+
+    do {
+      //1: original game, 2: analyses, 3: roundrobin, 4: exit
+      if (choice < 1 || choice > 4) {
+        System.out.println("Invalid input.");
+      }
+      System.out.println("Type [1] to play the original game.");
+      System.out.println("Type [2] for the computations and analyses.");
+      System.out.print("Your choice: ");
+      try {
+        choice = inputScanner.nextInt();
+      }
+      catch (Exception e) {
+        System.out.println("Invalid input. Exiting program.");
+      }
+    } while (choice < 1 || choice > 4);
+
+    return choice;
+  }
+
   public static void main(String[] args) {
     displayTitle();
-    inputDiceFaces();
+    
+    int choice1 = inputProgramMode();
 
-    Position Pos1 = new Position(dice, currentDocks);
-    System.out.println(Pos1.docksToString());
-    Pos1.addChip(6, 5);
-    System.out.println(Pos1.docksToString());
-    Pos1.removeChip(6, 3);
-    System.out.println(Pos1.docksToString());
-    System.out.println(Pos1.getCount());
+    if (choice1 == 1) {
+      System.out.println("Prepare to play the game.");
+    }
+    else if (choice1 == 2) {
+      System.out.println("Computations and Analyses.");
+    }
+    else if (choice1 == 3) {
+      System.out.println("Round Robin Results.");
+    }
+    else if (choice1 == 4) {
+      System.out.println("Exiting Program.");
+    }
   }
 }
