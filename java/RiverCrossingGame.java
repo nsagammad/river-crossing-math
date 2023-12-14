@@ -10,7 +10,7 @@ public class RiverCrossingGame {
   //variables
   static int dice = 2;
   static int faces = 6;
-  static int currentDocks = 12;
+  static int docks = 12;
 
   //functions
   //displays the title
@@ -23,7 +23,7 @@ public class RiverCrossingGame {
   //allows the user to input the number of dice and number of faces in each die.
   public static void inputDiceFaces() {
     do {
-      if (currentDocks > MAX_CHIPSDOCKS) {
+      if (docks > MAX_CHIPSDOCKS) {
         System.out.println("Invalid number of dice and faces. Please consider lowering the number of dice or faces.");
       }
       System.out.print("Enter number of dice: ");
@@ -42,8 +42,11 @@ public class RiverCrossingGame {
         System.out.println("Your input was not a valid number. Default 6 faces per die assigned.");
         faces = 6;
       }
-      currentDocks = dice * faces;
-    } while (currentDocks > MAX_CHIPSDOCKS);
+      docks = dice * faces;
+    } while (docks > MAX_CHIPSDOCKS);
+
+    //after input, numbers are valid
+    Position.setDocks(docks, dice);
   }
 
   public static int inputProgramMode() {
