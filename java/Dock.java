@@ -1,11 +1,14 @@
 import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.math.MathContext;
 
 public class Dock {
     private int chips;
     private boolean usable;
 
     //probabilities per dock.
-    private static ArrayList<Double> probabilities = new ArrayList<Double>();
+    private static ArrayList<BigDecimal> probNumerator = new ArrayList<BigDecimal>();
+    private static BigDecimal probDenominator = BigDecimal.ONE;
 
     //constructor with only useValue
     public Dock(boolean useValue) {
@@ -32,12 +35,12 @@ public class Dock {
 
     //returns the probability of a certain dock.
     //dock counting starts at 0.
-    public static double getProbability(int d) {
-        if (!probabilities.isEmpty() && d < probabilities.size()) {
-            return probabilities.get(d);
-        }
+    public static BigDecimal getProbability(int d) {
+        if (!probNumerator.isEmpty() && d < probNumerator.size()) {
+            return probNumerator.get(d).divide(probDenominator, MathContext.DECIMAL128);
+        }   
         else {
-            return 0;
+            return BigDecimal.ZERO;
         }
     }
 
@@ -69,10 +72,12 @@ public class Dock {
         }
         //dice = 1: trivial case
         else if (d == 1) {
-            probabilities.clear();
+            probNumerator.clear();
             for (int i = 0; i < f; i++) {
-                probabilities.add(1 / (double)f);
+                probNumerator.add(BigDecimal.ONE);
             }
+
+            probDenominator = probDenominator.multiply(new BigDecimal(f));
         }
         //non-trivial case: more than 1 die
         else if (d > 1) {
@@ -80,34 +85,33 @@ public class Dock {
             setupProbabilities(d - 1, f);
 
             //copy over previous values
-            ArrayList<Double> probCopy = new ArrayList<Double>();
-            for (int i = 0; i < probabilities.size(); i++) {
-                probCopy.add(probabilities.get(i));
+            ArrayList<BigDecimal> probCopy = new ArrayList<BigDecimal>();
+            for (int i = 0; i < probNumerator.size(); i++) {
+                probCopy.add(probNumerator.get(i));
             }
 
             //clear probabilities
-            probabilities.clear();
+            probNumerator.clear();
             //add 0 to first index
-            probabilities.add(0.0);
+            probNumerator.add(BigDecimal.ZERO);
 
             //add the values of probcopy
             for (int i = 1; i <= f; i++) { //iterate from 1 to f
                 for (int j = 0; j < (d - 1) * f; j++) {
-                    if (i + j == probabilities.size()) {
+                    if (i + j == probNumerator.size()) {
                         //add new element
-                        probabilities.add(probCopy.get(j));
+                        probNumerator.add(probCopy.get(j));
                     }
                     else {
                         //add to existing element
-                        probabilities.set(i + j, probabilities.get(i + j) + probCopy.get(j));
+                        probNumerator.set(i + j, probNumerator.get(i + j).add(probCopy.get(j)));
                     }
                 }
             }
             
-            //divide by faces
-            for (int i = 0; i < d * f; i++) {
-                probabilities.set(i, probabilities.get(i) / f);
-            }
+            //update denominator
+            BigDecimal subDenominator = new BigDecimal(f);
+            probDenominator = probDenominator.multiply(subDenominator);
         }
     }
 

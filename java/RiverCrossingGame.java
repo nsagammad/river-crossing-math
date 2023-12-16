@@ -10,6 +10,7 @@ public class RiverCrossingGame {
   //variables
   static int dice = 2;
   static int faces = 6;
+  static int currentChips = 12;
   static int docks = 12;
 
   //functions
@@ -79,9 +80,19 @@ public class RiverCrossingGame {
 
     if (choice1 == 1) {
       System.out.println("Prepare to play the game.");
+      dice = 2;
+      faces = 6;
+      currentChips = 12;
+      docks = dice * faces;
+      Position.setDocks(docks, dice);
+      Game g = new Game(dice, faces, currentChips);
+      g.inputPositions();
+      g.playGame();
     }
     else if (choice1 == 2) {
       System.out.println("Computations and Analyses.");
+      Dock.setupProbabilities(2, 6);
+      System.out.println(Dock.getProbability(6).toString());
     }
     else if (choice1 == 3) {
       System.out.println("Round Robin Results.");
