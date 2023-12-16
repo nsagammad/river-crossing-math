@@ -2,7 +2,7 @@ import java.util.ArrayList;
 
 public class Position {
     //character representations of numbers 1 through 35.
-    private final String DOCK_STRING = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    static final String DOCK_STRING = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     //arrayList of Docks.
     private ArrayList<Dock> docks = new ArrayList<Dock>();
@@ -43,9 +43,20 @@ public class Position {
         }
     }
 
+    //returns the number of chips in dock d.
+    //dock counting starts at 1.
+    public int getChips(int d) {
+        return docks.get(d).chipCount();
+    }
+
     //returns the number of chips in the position.
     public int getCount() {
         return count;
+    }
+
+    //returns the number of docks.
+    public static int getDocks() {
+        return currentDocks;
     }
 
     //returns a string representing the number of chips in each dock.
@@ -76,6 +87,19 @@ public class Position {
             middle[0] = ((currentDocks + d - 1) / 2) - 1;
             middle[1] = ((currentDocks + d + 1) / 2) - 1;
         }
+    }
+
+    //finds the dock with the most chips and returns the number of chips.
+    public int maxDockChips() {
+        int max = 0;
+
+        for (Dock d : docks) {
+            if (d.chipCount() > max) {
+                max = d.chipCount();
+            }
+        }
+
+        return max;
     }
 
     //removes num number of chips from dock d.
