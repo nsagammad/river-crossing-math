@@ -64,8 +64,8 @@ void setupProbabilities(double[], int);
 void stopTimer();
 
 //constants
-const int MAX_CHIPS_DOCKS = 35;
-const char DOCK_STRING[35] = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const int MAX_CHIPS_DOCKS = 45;
+const char DOCK_STRING[45] = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij";
 
 //enums
 enum Player {

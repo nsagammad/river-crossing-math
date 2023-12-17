@@ -17,10 +17,12 @@ public class Game {
     private Scanner inputScanner = new Scanner(System.in);
     private String positionInput;
     private String[] splitInput;
+    private String gameInput = "R";
 
     //random variables
     private Random random = new Random();
     private int randomDock = 0;
+    private int diceRoll = 0;
 
     //constructor for the Game object.
     public Game(int d, int f, int c) {
@@ -114,7 +116,7 @@ public class Game {
         for (String s : splitInput) {
             s = s.toUpperCase();
             //s needs to be a single character and be inside dock_string. chip count must not exceed 12.
-            if (Position.DOCK_STRING.indexOf(s) > 0 && s.length() == 1 && position1.getCount() < chips) { 
+            if (Position.DOCK_STRING.contains(s) && s.length() == 1 && position1.getCount() < chips) { 
                 position1.addChip(Position.DOCK_STRING.indexOf(s), 1);
             }
         }
@@ -144,7 +146,7 @@ public class Game {
         for (String s : splitInput) {
             s = s.toUpperCase();
             //s needs to be a single character and be inside dock_string. chip count must not exceed 12.
-            if (Position.DOCK_STRING.indexOf(s) >= 0 && s.length() == 1 && position2.getCount() < chips) { 
+            if (Position.DOCK_STRING.contains(s) && s.length() == 1 && position2.getCount() < chips) { 
                 position2.addChip(Position.DOCK_STRING.indexOf(s), 1);
             }
         }
@@ -159,5 +161,39 @@ public class Game {
     public void playGame() {
         System.out.println("-----");
         displayBoard(position1, position2);
+        System.out.println("Let's Play!");
+        while (position1.getCount() > 0 && position2.getCount() > 0) {
+            //check for invalid input
+            do {
+                if (gameInput != "R") {
+                    System.out.println("Invalid Input.");
+                }
+                System.out.println("Type [R] to roll the dice!");
+                gameInput = inputScanner.nextLine();
+                gameInput = gameInput.toUpperCase();
+                gameInput = gameInput.substring(0, 0);
+            } while (gameInput != "R");
+
+            //once we have the R, roll the dice
+            if (gameInput == "R") {
+                diceRoll = rollDice();
+                //remove chips
+                position1.removeChip(diceRoll - 1, 1);
+                position2.removeChip(diceRoll - 1, 1);
+            }
+
+            System.out.println("-----");
+            displayBoard(position1, position2);
+        }
+    }
+
+    private int rollDice() {
+        int roll = 0;
+
+        for (int i = 0; i < dice; i++) {
+            roll += random.nextInt(faces) + 1;
+        }
+
+        return roll;
     }
 }
