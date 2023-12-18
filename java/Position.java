@@ -55,6 +55,15 @@ public class Position {
     }
 
     //returns the expected duration of the position.
+    //ed is in the form of an array ed={numerator, denominator}.
+    //for now, it is unlikely that this will reach the double format limit.
+    public double[] expectedDurationSimulation() {
+        double ed[] = {0d, 0d};
+
+        return ed;
+    }
+
+    //returns the expected duration of the position.
     //ed is in the form of an array ed={Numerator, Denominator}.
     public BigDecimal[] expectedDurationRecursive()  {
         BigDecimal ed[] = {BigDecimal.ONE, BigDecimal.ONE}; //output variable
