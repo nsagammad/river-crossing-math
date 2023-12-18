@@ -166,6 +166,8 @@ public class Game {
     public void playGame() {
         int count1 = position1.getCount();
         int count2 = position2.getCount();
+        BigDecimal ed1[] = {BigDecimal.ZERO, BigDecimal.ZERO};
+        BigDecimal ed2[] = {BigDecimal.ZERO, BigDecimal.ZERO};
 
         System.out.println("-----");
         displayBoard(position1, position2);
@@ -177,10 +179,14 @@ public class Game {
                 if (!gameInput.equals("R") && !gameInput.equals("E")) {
                     System.out.println("Invalid Input.");
                 }
-                if (rolls >= 1) {
+                if (rolls >= 1 && gameInput.equals("R")) {
                     System.out.println("Dice rolled a " + diceRoll + "!");
                     System.out.println(removed1 + " chips removed from Player 1.");
                     System.out.println(removed2 + " chips removed from Player 2.");
+                }
+                else if (gameInput.equals("E")) {
+                    System.out.println("Expected Duration for Player 1: " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
+                    System.out.println("Expected Duration for Player 2: " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
                 }
                 System.out.println("Type [R] to roll the dice!");
                 gameInput = inputScanner.nextLine();
@@ -200,10 +206,8 @@ public class Game {
             }
             //input E: expected duration
             if (gameInput.equals("E")) {
-                BigDecimal[] ed1 = position1.expectedDurationRecursive();
-                BigDecimal[] ed2 = position2.expectedDurationRecursive();
-                System.out.println("Expected Duration for Player 1: " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
-                System.out.println("Expected Duration for Player 2: " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
+                ed1 = position1.expectedDurationRecursive();
+                ed2 = position2.expectedDurationRecursive();
             }
 
             System.out.println("-----");
