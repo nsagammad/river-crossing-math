@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public class Position {
     //character representations of numbers 1 through 35.
@@ -16,7 +18,7 @@ public class Position {
     //current number of usable docks.
     private static int usableDocks = 11;
 
-    //constructor
+    //constructor given number of dice.
     public Position(int dice) {
         for (int i = 0; i < currentDocks; i++) {
             Dock d = new Dock(false);
@@ -31,6 +33,15 @@ public class Position {
         count = 0;
     }
 
+    //constructor given a position to copy.
+    public Position(Position p) {
+        count = p.getCount();
+
+        for (int i = 0; i < currentDocks; i++) {
+            docks.add(new Dock(p.getChips(i), p.isDockUsable(i)));
+        }
+    }
+
     //adds num number of chips to dock d.
     //dock counting starts at 0.
     public void addChip(int d, int num) {
@@ -41,6 +52,88 @@ public class Position {
         else {
             throw new ArrayIndexOutOfBoundsException("No dock with that number in docks");
         }
+    }
+
+    //returns the expected duration of the position.
+    //ed is in the form of an array ed={Numerator, Denominator}.
+    public BigDecimal[] expectedDurationRecursive()  {
+        BigDecimal ed[] = {BigDecimal.ONE, BigDecimal.ONE}; //output variable
+        BigDecimal sumProb = BigDecimal.ZERO; //sum of probabilities of docks with chips in them.
+        BigInteger edInt[] = {BigInteger.ONE, BigInteger.ONE}; //used to get LCD when adding fractions and GCF when dividing fractions.
+        BigInteger tempInt = BigInteger.ZERO; //used as a placeholder for the LCD and GCF when they are computed.
+        BigDecimal tempDec; //big decimal version of tempInt.
+
+        //trivial cases
+        //chip in non-usable dock
+        for (int i = 0; i < docks.size(); i++) {
+            if (!docks.get(i).isUsable() && getChips(i) > 0) {
+                ed[0] = BigDecimal.ONE;
+                ed[1] = BigDecimal.ZERO;
+                break;
+            }
+        }
+        //no chips
+        if (count == 0) {
+            ed[0] = BigDecimal.ZERO;
+            ed[1] = BigDecimal.ONE;
+        }
+        //non-trivial case
+        else {
+            //sum of probabilities
+            for (int i = 0; i < currentDocks; i++) {
+                if (getChips(i) > 0) {
+                    sumProb = sumProb.add(Dock.getProbabilityNumerator(i));
+                    //use recursion to get ED of reduced position
+                    if (count > 1) {
+                        Position p = new Position(this);
+                        p.removeChip(i, 1);
+                        BigDecimal[] ed_sub = p.expectedDurationRecursive();
+
+                        //ed_sub * prob[i]
+                        ed_sub[0] = ed_sub[0].multiply(Dock.getProbabilityNumerator(i));
+                        ed_sub[1] = ed_sub[1].multiply(Dock.getProbabilityDenominator());
+
+                        //add to ed. use lcd
+                        //get greatest common divisor
+                        edInt[0] = ed[1].toBigInteger();
+                        edInt[1] = ed_sub[1].toBigInteger();
+                        tempInt = edInt[0].gcd(edInt[1]);
+                        //get new denominator. lcm = denominator1 * denominator2 / gcd
+                        tempDec = new BigDecimal(tempInt);
+                        ed[1] = ed[1].multiply(ed_sub[1]);
+                        ed[1] = ed[1].divide(tempDec);
+
+                        //get new numerator.
+                        //new numerator = lcm / old denominator * old numerator
+                        //set tempdec to ed[1]
+                        tempDec = new BigDecimal(edInt[0]);
+                        //multiply ed[0] by ed[1] then divide by tempDec.
+                        ed[0] = ed[0].multiply(ed[1]).divide(tempDec);
+                        //set tempdec to ed_sub[1]
+                        tempDec = new BigDecimal(edInt[1]);
+                        //multiply ed_sub[0] by ed[1] then divide by tempDec.
+                        ed_sub[0] = ed_sub[0].multiply(ed[1]).divide(tempDec);
+
+                        //add the new numerators.
+                        ed[0] = ed[0].add(ed_sub[0]);
+                    }
+                }
+            }
+
+            //divide ed by sumProb
+            ed[0] = ed[0].multiply(Dock.getProbabilityDenominator());
+            ed[1] = ed[1].multiply(sumProb);
+
+            //put it in lowest terms.
+            edInt[0] = ed[0].toBigInteger(); //convert to big integer
+            edInt[1] = ed[1].toBigInteger();
+            tempInt = edInt[0].gcd(edInt[1]); //get greatest common divisor
+            tempDec = new BigDecimal(tempInt); //convert back to big decimal
+            ed[0] = ed[0].divide(tempDec); //divide both numerator and denominator by gcd
+            ed[1] = ed[1].divide(tempDec);
+        }
+
+        return ed;
     }
 
     //returns the number of chips in dock d.
@@ -89,6 +182,12 @@ public class Position {
         }
     }
 
+    //returns whether dock d is usable.
+    //dock counting starts at 0.
+    public boolean isDockUsable(int d) {
+        return docks.get(d).isUsable();
+    }
+
     //finds the dock with the most chips and returns the number of chips.
     public int maxDockChips() {
         int max = 0;
@@ -104,14 +203,16 @@ public class Position {
 
     //removes num number of chips from dock d.
     //dock counting starts at 0.
-    public void removeChip(int d, int num) {
+    public int removeChip(int d, int num) {
+        int removed;
         if (d < docks.size()) {
-            int removed = docks.get(d).removeChip(num);
+            removed = docks.get(d).removeChip(num);
             count -= removed;
         }
         else {
             throw new ArrayIndexOutOfBoundsException("No dock with that number in docks");
         }
+        return removed;
     }
 
     //sets the value of currentDocks and usableDocks.

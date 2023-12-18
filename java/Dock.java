@@ -44,6 +44,17 @@ public class Dock {
         }
     }
 
+    //returns the probability denominator.
+    public static BigDecimal getProbabilityDenominator() {
+        return probDenominator;
+    }
+
+    //returns the probability numerator.
+    //dock counting starts at 0.
+    public static BigDecimal getProbabilityNumerator(int d) {
+        return probNumerator.get(d);
+    }
+
     //returns the value of usable. true if the dock number can be rolled.
     public boolean isUsable() {
         return usable;

@@ -82,9 +82,10 @@ public class RiverCrossingGame {
       System.out.println("Prepare to play the game.");
       dice = 2;
       faces = 6;
-      currentChips = 12;
+      currentChips = 4;
       docks = dice * faces;
       Position.setDocks(docks, dice);
+      Dock.setupProbabilities(dice, faces);
       Game g = new Game(dice, faces, currentChips);
       g.inputPositions();
       g.playGame();

@@ -1,5 +1,7 @@
 import java.util.Scanner;
 import java.util.Random;
+import java.math.BigDecimal;
+import java.math.MathContext;
 
 public class Game {
     //game variables
@@ -23,6 +25,9 @@ public class Game {
     private Random random = new Random();
     private int randomDock = 0;
     private int diceRoll = 0;
+    private int rolls = 0;
+    private int removed1 = 0;
+    private int removed2 = 0;
 
     //constructor for the Game object.
     public Game(int d, int f, int c) {
@@ -159,31 +164,61 @@ public class Game {
     }
 
     public void playGame() {
+        int count1 = position1.getCount();
+        int count2 = position2.getCount();
+
         System.out.println("-----");
         displayBoard(position1, position2);
         System.out.println("Let's Play!");
-        while (position1.getCount() > 0 && position2.getCount() > 0) {
+
+        while (count1 > 0 && count2 > 0) {
             //check for invalid input
             do {
-                if (gameInput != "R") {
+                if (!gameInput.equals("R") && !gameInput.equals("E")) {
                     System.out.println("Invalid Input.");
+                }
+                if (rolls >= 1) {
+                    System.out.println("Dice rolled a " + diceRoll + "!");
+                    System.out.println(removed1 + " chips removed from Player 1.");
+                    System.out.println(removed2 + " chips removed from Player 2.");
                 }
                 System.out.println("Type [R] to roll the dice!");
                 gameInput = inputScanner.nextLine();
                 gameInput = gameInput.toUpperCase();
-                gameInput = gameInput.substring(0, 0);
-            } while (gameInput != "R");
+                gameInput = gameInput.substring(0, 1);
+            } while (!gameInput.equals("R") && !gameInput.equals("E"));
 
             //once we have the R, roll the dice
-            if (gameInput == "R") {
+            if (gameInput.equals("R")) {
                 diceRoll = rollDice();
                 //remove chips
-                position1.removeChip(diceRoll - 1, 1);
-                position2.removeChip(diceRoll - 1, 1);
+                removed1 = position1.removeChip(diceRoll - 1, 1);
+                count1 = position1.getCount();
+                removed2 = position2.removeChip(diceRoll - 1, 1);
+                count2 = position2.getCount();
+                rolls++;
+            }
+            //input E: expected duration
+            if (gameInput.equals("E")) {
+                BigDecimal[] ed1 = position1.expectedDurationRecursive();
+                BigDecimal[] ed2 = position2.expectedDurationRecursive();
+                System.out.println("Expected Duration for Player 1: " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
+                System.out.println("Expected Duration for Player 2: " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
             }
 
             System.out.println("-----");
             displayBoard(position1, position2);
+        }
+
+        //game result
+        if (count1 == 0 && count2 > 0) {
+            System.out.println("Player 1 wins after " + rolls + " rolls!");
+        }
+        else if (count1 > 0 && count2 == 0) {
+            System.out.println("Player 2 wins after " + rolls + " rolls!");
+        }
+        else if (count1 == 0 && count2 == 0) {
+            System.out.println("Tie game after " + rolls + " rolls!");
         }
     }
 
