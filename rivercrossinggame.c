@@ -125,12 +125,12 @@ int current_chips = 4;
 int current_docks = 12;
 int usable_docks = 11;
 int middle[2];
-int positionCounter = 0;
-int restartCounter = 0;
-int leaderCounter = 0;
-int mirrorCounter = 0;
-int restartLeaderCounter = 0;
-int restartMirrorCounter = 0;
+unsigned long positionCounter = 0;
+unsigned long restartCounter = 0;
+unsigned long leaderCounter = 0;
+unsigned long mirrorCounter = 0;
+unsigned long restartLeaderCounter = 0;
+unsigned long restartMirrorCounter = 0;
 double maxPositions = 0;
 double middleChipPositions = 0;
 int noGapPositions = 0;
@@ -719,15 +719,15 @@ void edCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDo
         posToString(leaderPos, posString);
         currentStringMode = STRING_DOCKS;
         posToString(leaderDocks, docksString);
-        printf("\n-----\nInitial Position with Lowest Expected Duration: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
-        fprintf(txtfile, "\n-----\nInitial Position with Lowest Expected Duration: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+        printf("\n-----\nInitial Position with Lowest Expected Duration: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
+        fprintf(txtfile, "\n-----\nInitial Position with Lowest Expected Duration: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
         if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
             currentStringMode = STRING_CHIPS;
             posToString(mirrorPos, posString);
             currentStringMode = STRING_DOCKS;
             posToString(mirrorDocks, docksString);
-            printf("Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
-            fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+            printf("Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
+            fprintf(txtfile, "Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
         }
         printf("Expected Duration: %lf\n", bestEd);
         fprintf(txtfile, "Expected Duration: %lf\n", bestEd);
@@ -778,7 +778,7 @@ void edIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirror
         currentStringMode = STRING_DOCKS;
         posToString(leaderDocks, dockString);
         if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
-            fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
+            fprintf(txtfile, "%10lu | %s | ", positionCounter + 1, dockString);
         }
         currentStringMode = STRING_DOCKS;
         posToString(posDocks, dockString);
@@ -808,7 +808,7 @@ void edIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirror
     //interval
     if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
         if ((positionCounter + 1) % currentInterval == 0) {
-            printf("Done with %d positions.\n", positionCounter + 1);
+            printf("Done with %lu positions.\n", positionCounter + 1);
         }
     }
 
@@ -1067,13 +1067,13 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
         posToString(leaderPos, posString);
         currentStringMode = STRING_DOCKS;
         posToString(leaderDocks, docksString);
-        fprintf(txtfile, "Current Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+        fprintf(txtfile, "Current Leader: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
         if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
             currentStringMode = STRING_CHIPS;
             posToString(mirrorPos, posString);
             currentStringMode = STRING_DOCKS;
             posToString(mirrorDocks, docksString);
-            fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+            fprintf(txtfile, "Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
         }
         printf("Restarting cycle...\n");
         printf("-----\n");
@@ -1105,15 +1105,15 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
             posToString(leaderPos, posString);
             currentStringMode = STRING_DOCKS;
             posToString(leaderDocks, docksString);
-            printf("\n-----\nOptimal Initial Position: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
-            fprintf(txtfile, "\n-----\nOptimal Initial Position: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            printf("\n-----\nOptimal Initial Position: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "\n-----\nOptimal Initial Position: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
             if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
                 currentStringMode = STRING_CHIPS;
                 posToString(mirrorPos, posString);
                 currentStringMode = STRING_DOCKS;
                 posToString(mirrorDocks, docksString);
-                printf("Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
-                fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                printf("Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
             }
         }
         //leader DID change during the restart cycle, there is no optimal initial position.
@@ -1124,30 +1124,30 @@ void gCompute(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorDoc
             posToString(leaderPos, posString);
             currentStringMode = STRING_DOCKS;
             posToString(leaderDocks, docksString);
-            printf("Initial Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
-            fprintf(txtfile, "Initial Leader: Position %d: %s | %s\n", leaderCounter + 1, posString, docksString);
+            printf("Initial Leader: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "Initial Leader: Position %lu: %s | %s\n", leaderCounter + 1, posString, docksString);
             if (isMirrorPosition(leaderDocks, mirrorDocks) && !isSamePosition(leaderDocks, mirrorDocks)) {
                 currentStringMode = STRING_CHIPS;
                 posToString(mirrorPos, posString);
                 currentStringMode = STRING_DOCKS;
                 posToString(mirrorDocks, docksString);
-                printf("Initial Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
-                fprintf(txtfile, "Initial Leader Mirror: Position %d: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                printf("Initial Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Initial Leader Mirror: Position %lu: %s | %s\n", mirrorCounter + 1, posString, docksString);
             }
 
             currentStringMode = STRING_CHIPS;
             posToString(restartLeaderPos, posString);
             currentStringMode = STRING_DOCKS;
             posToString(restartLeaderDocks, docksString);
-            printf("Restart Leader: Position %d: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
-            fprintf(txtfile, "Restart Leader: Position %d: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
+            printf("Restart Leader: Position %lu: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
+            fprintf(txtfile, "Restart Leader: Position %lu: %s | %s\n", restartLeaderCounter + 1, posString, docksString);
             if (isMirrorPosition(restartLeaderDocks, restartMirrorDocks) && !isSamePosition(restartLeaderDocks, restartMirrorDocks)) {
                 currentStringMode = STRING_CHIPS;
                 posToString(restartMirrorPos, posString);
                 currentStringMode = STRING_DOCKS;
                 posToString(restartMirrorDocks, docksString);
-                printf("Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
-                fprintf(txtfile, "Leader Mirror: Position %d: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
+                printf("Leader Mirror: Position %lu: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
+                fprintf(txtfile, "Leader Mirror: Position %lu: %s | %s\n", restartMirrorCounter + 1, posString, docksString);
             }
         }
 
@@ -1450,10 +1450,10 @@ void gIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorD
         currentStringMode = STRING_DOCKS;
         posToString(leaderDocks, dockString);
         if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
-            fprintf(txtfile, "%10d | %s | ", positionCounter + 1, dockString);
+            fprintf(txtfile, "%10lu | %s | ", positionCounter + 1, dockString);
         }
         else if (currentStep == STEP_RESTART) {
-            fprintf(txtfile, "%10d | %s | ", restartCounter + 1, dockString);
+            fprintf(txtfile, "%10lu | %s | ", restartCounter + 1, dockString);
         }
         currentStringMode = STRING_DOCKS;
         posToString(posDocks, dockString);
@@ -1481,12 +1481,12 @@ void gIteration(int leaderPos[], int leaderDocks[], int mirrorPos[], int mirrorD
     //interval
     if (currentStep == STEP_INITIAL || currentStep == STEP_FINAL) {
         if ((positionCounter + 1) % currentInterval == 0) {
-            printf("Done with %d positions.\n", positionCounter + 1);
+            printf("Done with %lu positions.\n", positionCounter + 1);
         }
     }
     else if (currentStep == STEP_RESTART) {
         if ((restartCounter + 1) % currentInterval == 0) {
-            printf("Done with %d positions.\n", restartCounter + 1);
+            printf("Done with %lu positions.\n", restartCounter + 1);
         }
     }
 
@@ -1523,7 +1523,7 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
         gFunctionRecursive(pos1Copy, pos1CopyDocks, pos2Copy, pos2CopyDocks, prob, output);
 
         //print positions
-        fprintf(csvfile, "%d,", positionCounter); //ID
+        fprintf(csvfile, "%lu,", positionCounter); //ID
         posToString(pos1, posString);
         fprintf(csvfile, "\"%s\",", posString); //posToString
         for (int i = 0; i < current_docks; i++) { //position 1
@@ -1537,12 +1537,12 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
         positionCounter++;
 
         if ((positionCounter) % currentInterval == 0) {
-            printf("Done with %d positions.\n", positionCounter);
+            printf("Done with %lu positions.\n", positionCounter);
         }
 
         if (!isSamePosition(pos1Docks, pos2Docks)) {
             //print positions
-            fprintf(csvfile, "%d,", positionCounter); //ID
+            fprintf(csvfile, "%lu,", positionCounter); //ID
             posToString(pos2, posString);
             fprintf(csvfile, "\"%s\",", posString); //posToString
             for (int i = 0; i < current_docks; i++) { //position 1
@@ -1556,7 +1556,7 @@ void gIterationRoundRobin(int pos1[], int pos1Docks[], int pos2[], int pos2Docks
             positionCounter++;
 
             if ((positionCounter) % currentInterval == 0) {
-                printf("Done with %d positions.\n", positionCounter);
+                printf("Done with %lu positions.\n", positionCounter);
             }
         }
     }
@@ -1937,7 +1937,7 @@ void newLeader(int pos[], int posDocks[], int leaderPos[], int leaderDocks[]) {
         restartLeaderCounter = restartCounter;
     }
     copyPosition(pos, posDocks, leaderPos, leaderDocks);
-    printf("New Leader found at Position %d!\n", leaderCounter + 1);
+    printf("New Leader found at Position %lu!\n", leaderCounter + 1);
 }
 
 //sets the new mirror position.
@@ -1951,7 +1951,7 @@ void newMirror(int pos[], int posDocks[], int mirrorPos[], int mirrorDocks[]) {
         restartMirrorCounter = restartCounter;
     }
     copyPosition(pos, posDocks, mirrorPos, mirrorDocks);
-    printf("New Mirror found at Position %d!\n", mirrorCounter + 1);
+    printf("New Mirror found at Position %lu!\n", mirrorCounter + 1);
 }
 
 //finds the next position to help enumerate all possible initial positions.
