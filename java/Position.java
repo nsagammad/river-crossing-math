@@ -192,6 +192,13 @@ public class Position {
         return currentDocks;
     }
 
+    //returns the g Function values for the position and its opponent.
+    public BigDecimal[][] gFunctionRecursive(Position p) {
+        BigDecimal[][] gFunction = {{BigDecimal.ZERO, BigDecimal.ZERO}, {BigDecimal.ZERO, BigDecimal.ZERO}, {BigDecimal.ZERO, BigDecimal.ZERO}};
+
+        return gFunction;
+    }
+
     //returns a string representing the number of chips in each dock.
     public String docksToString() {
         String chipsStr = "";
