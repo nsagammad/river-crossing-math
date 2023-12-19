@@ -194,7 +194,68 @@ public class Position {
 
     //returns the g Function values for the position and its opponent.
     public BigDecimal[][] gFunctionRecursive(Position p) {
-        BigDecimal[][] gFunction = {{BigDecimal.ZERO, BigDecimal.ZERO}, {BigDecimal.ZERO, BigDecimal.ZERO}, {BigDecimal.ZERO, BigDecimal.ZERO}};
+        BigDecimal[][] gFunction = {{BigDecimal.ZERO, BigDecimal.ONE}, {BigDecimal.ZERO, BigDecimal.ONE}, {BigDecimal.ZERO, BigDecimal.ONE}};
+        int count1 = getCount();
+        int count2 = p.getCount();
+        BigDecimal sumProb = BigDecimal.ZERO;
+        BigInteger gInt[] = {BigInteger.ZERO, BigInteger.ZERO};
+        BigInteger tempInt = BigInteger.ZERO;
+        BigDecimal tempDec = BigDecimal.ZERO;
+
+        //trivial cases
+        if (count1 == 0 && count2 > 0) {
+            //this wins
+            gFunction[0][0] = BigDecimal.ONE;
+        }
+        else if (count1 > 0 && count2 == 0) {
+            //p wins
+            gFunction[1][0] = BigDecimal.ONE;
+        }
+        else if (count1 == 0 && count2 == 0) {
+            //tie game
+            gFunction[2][0] = BigDecimal.ONE;
+        }
+        else if (isSamePosition(p)) {
+            //identical positions guarantee a tie
+            gFunction[2][0] = BigDecimal.ONE;
+        }
+        else {
+            //non-trivial case: game has not ended, and no outcome is guaranteed
+            //copy variables
+            BigDecimal[][] g_sub;
+            Position pos1, pos2;
+
+            //loop through each dock
+            for (int i = 0; i < currentDocks; i++) {
+                if (getChips(i) > 0 || p.getChips(i) > 0) {
+                    //add to sumProb
+                    sumProb = sumProb.add(Dock.getProbabilityNumerator(i));
+
+                    //copy this and p into pos1 and pos2
+                    pos1 = new Position(this);
+                    pos2 = new Position(p);
+
+                    //remove a chip from dock i
+                    pos1.removeChip(i, 1);
+                    pos2.removeChip(i, 2);
+
+                    //call gFunctionRecursive on copied positions
+                    g_sub = pos1.gFunctionRecursive(pos2);
+
+                    //add to current value of gFunction. use LCM to add and GCD to put into lowest terms.
+                    //gFunction[0] denominator
+                    gInt[0] = gFunction[0][1].toBigInteger(); //denominator 1
+                    gInt[1] = g_sub[0][1].toBigInteger(); //denominator 2
+                    tempInt = gInt[0].gcd(gInt[1]); //gcd as integer
+                    tempDec = new BigDecimal(tempInt); //gcd as float
+                    gFunction[0][1] = gFunction[0][1].multiply(g_sub[0][1]).divide(tempDec); //lcm = denominator1 * denominator2 / gcd
+
+                    //gFunction[0] numerator
+                }
+            }
+
+            //divide by sumProb
+        }
 
         return gFunction;
     }
@@ -233,6 +294,20 @@ public class Position {
     //dock counting starts at 0.
     public boolean isDockUsable(int d) {
         return docks.get(d).isUsable();
+    }
+
+    //returns whether this is identical to p.
+    public boolean isSamePosition(Position p) {
+        boolean isSame = true;
+
+        for (int i = 0; i < currentDocks; i++) {
+            if (getChips(i) != p.getChips(i)) {
+                isSame = false;
+                break;
+            }
+        }
+
+        return isSame;
     }
 
     //finds the dock with the most chips and returns the number of chips.
