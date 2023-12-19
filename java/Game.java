@@ -5,8 +5,8 @@ import java.math.MathContext;
 
 public class Game {
     //game variables
-    private int dice;
-    private int faces;
+    private static int dice = 2;
+    private static int faces = 6;
     private int chips;
     private int docks;
 
@@ -22,7 +22,7 @@ public class Game {
     private String gameInput = "R";
 
     //random variables
-    private Random random = new Random();
+    private static Random random = new Random();
     private int randomDock = 0;
     private int diceRoll = 0;
     private int rolls = 0;
@@ -168,6 +168,8 @@ public class Game {
         int count2 = position2.getCount();
         BigDecimal ed1[] = {BigDecimal.ZERO, BigDecimal.ZERO};
         BigDecimal ed2[] = {BigDecimal.ZERO, BigDecimal.ZERO};
+        double edsim1[] = {0d, 0d};
+        double edsim2[] = {0d, 0d};
 
         System.out.println("-----");
         displayBoard(position1, position2);
@@ -176,7 +178,7 @@ public class Game {
         while (count1 > 0 && count2 > 0) {
             //check for invalid input
             do {
-                if (!gameInput.equals("R") && !gameInput.equals("E")) {
+                if (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X")) {
                     System.out.println("Invalid Input.");
                 }
                 if (rolls >= 1 && gameInput.equals("R")) {
@@ -185,14 +187,26 @@ public class Game {
                     System.out.println(removed2 + " chips removed from Player 2.");
                 }
                 else if (gameInput.equals("E")) {
-                    System.out.println("Expected Duration for Player 1: " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
-                    System.out.println("Expected Duration for Player 2: " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
+                    System.out.println("Expected Duration for Player 1 (Recursion): " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
+                    if (edsim1[1] != 0d) {
+                        System.out.println("Expected Duration for Player 1 (Simulation): " + (edsim1[0] / edsim1[1]));
+                    }
+                    else {
+                        System.out.println("Expected Duration for Player 1 (Simulation): Infinite");
+                    }
+                    System.out.println("Expected Duration for Player 2 (Recursion): " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
+                    if (edsim2[1] != 0d) {
+                        System.out.println("Expected Duration for Player 1 (Simulation): " + (edsim2[0] / edsim2[1]));
+                    }
+                    else {
+                        System.out.println("Expected Duration for Player 1 (Simulation): Infinite");
+                    }
                 }
                 System.out.println("Type [R] to roll the dice!");
                 gameInput = inputScanner.nextLine();
                 gameInput = gameInput.toUpperCase();
                 gameInput = gameInput.substring(0, 1);
-            } while (!gameInput.equals("R") && !gameInput.equals("E"));
+            } while (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X"));
 
             //once we have the R, roll the dice
             if (gameInput.equals("R")) {
@@ -205,9 +219,16 @@ public class Game {
                 rolls++;
             }
             //input E: expected duration
-            if (gameInput.equals("E")) {
+            else if (gameInput.equals("E")) {
                 ed1 = position1.expectedDurationRecursive();
                 ed2 = position2.expectedDurationRecursive();
+                edsim1 = position1.expectedDurationSimulation(10000);
+                edsim2 = position2.expectedDurationSimulation(10000);
+            }
+            //input X: exit game
+            else if (gameInput.equals("X")) {
+                System.out.println("Exiting...");
+                break;
             }
 
             System.out.println("-----");
@@ -224,9 +245,13 @@ public class Game {
         else if (count1 == 0 && count2 == 0) {
             System.out.println("Tie game after " + rolls + " rolls!");
         }
+
+        if (gameInput.equals("X")) {
+            System.out.println("Game exited after " + rolls + " rolls.");
+        }
     }
 
-    private int rollDice() {
+    public static int rollDice() {
         int roll = 0;
 
         for (int i = 0; i < dice; i++) {
@@ -234,5 +259,10 @@ public class Game {
         }
 
         return roll;
+    }
+
+    public static void setDice(int d, int f) {
+        dice = d;
+        faces = f;
     }
 }

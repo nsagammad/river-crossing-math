@@ -55,15 +55,6 @@ public class Position {
     }
 
     //returns the expected duration of the position.
-    //ed is in the form of an array ed={numerator, denominator}.
-    //for now, it is unlikely that this will reach the double format limit.
-    public double[] expectedDurationSimulation() {
-        double ed[] = {0d, 0d};
-
-        return ed;
-    }
-
-    //returns the expected duration of the position.
     //ed is in the form of an array ed={Numerator, Denominator}.
     public BigDecimal[] expectedDurationRecursive()  {
         BigDecimal ed[] = {BigDecimal.ONE, BigDecimal.ONE}; //output variable
@@ -78,7 +69,7 @@ public class Position {
             if (!docks.get(i).isUsable() && getChips(i) > 0) {
                 ed[0] = BigDecimal.ONE;
                 ed[1] = BigDecimal.ZERO;
-                break;
+                return ed;
             }
         }
         //no chips
@@ -141,6 +132,46 @@ public class Position {
             ed[0] = ed[0].divide(tempDec); //divide both numerator and denominator by gcd
             ed[1] = ed[1].divide(tempDec);
         }
+
+        return ed;
+    }
+
+    //returns the expected duration of the position.
+    //ed is in the form of an array ed={numerator, denominator}.
+    //for now, it is unlikely that this will reach the double format limit.
+    public double[] expectedDurationSimulation(double interval) {
+        double ed[] = {0d, 0d};
+        double rolls = 0d;
+        double games = 0d;
+        Position p;
+        int roll;
+
+        //trivial case: chip in impossible dock
+        for (int i = 0; i < docks.size(); i++) {
+            if (!docks.get(i).isUsable() && getChips(i) > 0) {
+                ed[0] = 1d;
+                ed[1] = 0d;
+                return ed;
+            }
+        }
+
+        //non-trivial case: normal position
+        //assume that Game.setDice has already been called
+        do {
+            p = new Position(this);
+
+            while (p.getCount() > 0) {
+                roll = Game.rollDice();
+                p.removeChip(roll - 1, 1);
+                rolls++;
+            }
+            games++;
+        } while (games < interval);
+
+        //numerator is always rolls
+        ed[0] = rolls;        
+        //denominator is always interval
+        ed[1] = interval;
 
         return ed;
     }
