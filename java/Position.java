@@ -53,6 +53,22 @@ public class Position {
         }
     }
 
+    //returns a string representing the number of chips in each dock.
+    public String docksToString() {
+        String chipsStr = "";
+
+        for (Dock d : docks) {
+            if (d.chipCount() == 0) {
+                chipsStr = chipsStr.concat("0");
+            }
+            else {
+                chipsStr = chipsStr.concat(DOCK_STRING.substring(d.chipCount() - 1, d.chipCount()));
+            }
+        }
+        
+        return chipsStr;
+    }
+
     //returns the expected duration of the position.
     //ed is in the form of an array ed={Numerator, Denominator}.
     public BigInteger[] expectedDurationRecursive()  {
@@ -166,6 +182,20 @@ public class Position {
         return ed;
     }
 
+    //sets the middle dock numbers based on d(dice).
+    //dock counting starts at 0.
+    public void findMiddle(int d) {
+        //assume that usableDocks has already been set
+        if (usableDocks % 2 == 1) { //odd
+            middle[0] = ((currentDocks + d) / 2) - 1;
+            middle[1] = middle[0];
+        }
+        else { //even
+            middle[0] = ((currentDocks + d - 1) / 2) - 1;
+            middle[1] = ((currentDocks + d + 1) / 2) - 1;
+        }
+    }
+
     //returns the number of chips in dock d.
     //dock counting starts at 1.
     public int getChips(int d) {
@@ -188,7 +218,7 @@ public class Position {
         int count1 = getCount();
         int count2 = p.getCount();
         BigInteger sumProb = BigInteger.ZERO;
-        BigInteger tempInt = BigInteger.ZERO;
+        BigInteger tempInt[] = {BigInteger.ZERO, BigInteger.ZERO};
 
         //trivial cases
         if (count1 == 0 && count2 > 0) {
@@ -232,10 +262,13 @@ public class Position {
 
                     //add to current value of gFunction. use LCM to add and GCD to put into lowest terms.
                     //gFunction[0] denominator
-                    tempInt = gFunction[0][0].gcd(gFunction[0][1]); //gcd as integer
-                    gFunction[0][1] = gFunction[0][1].multiply(g_sub[0][1]).divide(tempInt); //lcm = denominator1 * denominator2 / gcd
+                    tempInt[0] = gFunction[0][1].gcd(g_sub[0][1]); //gcd as integer
+                    tempInt[1] = gFunction[0][1]; //hold the value of denominator
+                    gFunction[0][1] = gFunction[0][1].multiply(g_sub[0][1]).divide(tempInt[0]); //lcm = denominator1 * denominator2 / gcd
 
                     //gFunction[0] numerator
+                    gFunction[0][0] = gFunction[0][0].multiply(gFunction[0][1]).divide(tempInt[1]); //numerator = lcm / denominator1 * numerator1
+                    g_sub[0][0] = g_sub[0][0].multiply(gFunction[0][1]).divide(g_sub[0][1]);
                 }
             }
 
@@ -243,36 +276,6 @@ public class Position {
         }
 
         return gFunction;
-    }
-
-    //returns a string representing the number of chips in each dock.
-    public String docksToString() {
-        String chipsStr = "";
-
-        for (Dock d : docks) {
-            if (d.chipCount() == 0) {
-                chipsStr = chipsStr.concat("0");
-            }
-            else {
-                chipsStr = chipsStr.concat(DOCK_STRING.substring(d.chipCount() - 1, d.chipCount()));
-            }
-        }
-        
-        return chipsStr;
-    }
-
-    //sets the middle dock numbers based on d(dice).
-    //dock counting starts at 0.
-    public void findMiddle(int d) {
-        //assume that usableDocks has already been set
-        if (usableDocks % 2 == 1) { //odd
-            middle[0] = ((currentDocks + d) / 2) - 1;
-            middle[1] = middle[0];
-        }
-        else { //even
-            middle[0] = ((currentDocks + d - 1) / 2) - 1;
-            middle[1] = ((currentDocks + d + 1) / 2) - 1;
-        }
     }
 
     //returns whether dock d is usable.
