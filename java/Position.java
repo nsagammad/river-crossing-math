@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class Position {
@@ -56,26 +55,24 @@ public class Position {
 
     //returns the expected duration of the position.
     //ed is in the form of an array ed={Numerator, Denominator}.
-    public BigDecimal[] expectedDurationRecursive()  {
-        BigDecimal ed[] = {BigDecimal.ONE, BigDecimal.ONE}; //output variable
-        BigDecimal sumProb = BigDecimal.ZERO; //sum of probabilities of docks with chips in them.
-        BigInteger edInt[] = {BigInteger.ONE, BigInteger.ONE}; //used to get LCD when adding fractions and GCF when dividing fractions.
+    public BigInteger[] expectedDurationRecursive()  {
+        BigInteger ed[] = {BigInteger.ONE, BigInteger.ONE}; //output variable
+        BigInteger sumProb = BigInteger.ZERO; //sum of probabilities of docks with chips in them.
         BigInteger tempInt = BigInteger.ZERO; //used as a placeholder for the LCD and GCF when they are computed.
-        BigDecimal tempDec; //big decimal version of tempInt.
 
         //trivial cases
         //chip in non-usable dock
         for (int i = 0; i < docks.size(); i++) {
             if (!docks.get(i).isUsable() && getChips(i) > 0) {
-                ed[0] = BigDecimal.ONE;
-                ed[1] = BigDecimal.ZERO;
+                ed[0] = BigInteger.ONE;
+                ed[1] = BigInteger.ZERO;
                 return ed;
             }
         }
         //no chips
         if (count == 0) {
-            ed[0] = BigDecimal.ZERO;
-            ed[1] = BigDecimal.ONE;
+            ed[0] = BigInteger.ZERO;
+            ed[1] = BigInteger.ONE;
         }
         //non-trivial case
         else {
@@ -87,32 +84,28 @@ public class Position {
                     if (count > 1) {
                         Position p = new Position(this);
                         p.removeChip(i, 1);
-                        BigDecimal[] ed_sub = p.expectedDurationRecursive();
+                        BigInteger[] ed_sub = p.expectedDurationRecursive();
 
                         //ed_sub * prob[i]
                         ed_sub[0] = ed_sub[0].multiply(Dock.getProbabilityNumerator(i));
                         ed_sub[1] = ed_sub[1].multiply(Dock.getProbabilityDenominator());
 
-                        //add to ed. use lcd
+                        //add to ed. use lcm
                         //get greatest common divisor
-                        edInt[0] = ed[1].toBigInteger();
-                        edInt[1] = ed_sub[1].toBigInteger();
-                        tempInt = edInt[0].gcd(edInt[1]);
+                        tempInt = ed[1].gcd(ed_sub[1]);
                         //get new denominator. lcm = denominator1 * denominator2 / gcd
-                        tempDec = new BigDecimal(tempInt);
                         ed[1] = ed[1].multiply(ed_sub[1]);
-                        ed[1] = ed[1].divide(tempDec);
+                        ed[1] = ed[1].divide(tempInt);
 
                         //get new numerator.
                         //new numerator = lcm / old denominator * old numerator
-                        //set tempdec to ed[1]
-                        tempDec = new BigDecimal(edInt[0]);
-                        //multiply ed[0] by ed[1] then divide by tempDec.
-                        ed[0] = ed[0].multiply(ed[1]).divide(tempDec);
-                        //set tempdec to ed_sub[1]
-                        tempDec = new BigDecimal(edInt[1]);
+                        //then new numerator1 = (den1 * den2 * num1) / (den1 * gcd)
+                        //new numerator1 = den2 * num1 / gcd
+                        //multiply ed[0] by ed_sub[1] then divide by tempInt.
+                        ed[0] = ed[0].multiply(ed_sub[1]).divide(tempInt);
+                        //new numerator2 = num2 * lcm / den2
                         //multiply ed_sub[0] by ed[1] then divide by tempDec.
-                        ed_sub[0] = ed_sub[0].multiply(ed[1]).divide(tempDec);
+                        ed_sub[0] = ed_sub[0].multiply(ed[1]).divide(ed_sub[1]);
 
                         //add the new numerators.
                         ed[0] = ed[0].add(ed_sub[0]);
@@ -125,12 +118,9 @@ public class Position {
             ed[1] = ed[1].multiply(sumProb);
 
             //put it in lowest terms.
-            edInt[0] = ed[0].toBigInteger(); //convert to big integer
-            edInt[1] = ed[1].toBigInteger();
-            tempInt = edInt[0].gcd(edInt[1]); //get greatest common divisor
-            tempDec = new BigDecimal(tempInt); //convert back to big decimal
-            ed[0] = ed[0].divide(tempDec); //divide both numerator and denominator by gcd
-            ed[1] = ed[1].divide(tempDec);
+            tempInt = ed[0].gcd(ed[1]); //get greatest common divisor
+            ed[0] = ed[0].divide(tempInt); //divide both numerator and denominator by gcd
+            ed[1] = ed[1].divide(tempInt);
         }
 
         return ed;
@@ -193,36 +183,34 @@ public class Position {
     }
 
     //returns the g Function values for the position and its opponent.
-    public BigDecimal[][] gFunctionRecursive(Position p) {
-        BigDecimal[][] gFunction = {{BigDecimal.ZERO, BigDecimal.ONE}, {BigDecimal.ZERO, BigDecimal.ONE}, {BigDecimal.ZERO, BigDecimal.ONE}};
+    public BigInteger[][] gFunctionRecursive(Position p) {
+        BigInteger[][] gFunction = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
         int count1 = getCount();
         int count2 = p.getCount();
-        BigDecimal sumProb = BigDecimal.ZERO;
-        BigInteger gInt[] = {BigInteger.ZERO, BigInteger.ZERO};
+        BigInteger sumProb = BigInteger.ZERO;
         BigInteger tempInt = BigInteger.ZERO;
-        BigDecimal tempDec = BigDecimal.ZERO;
 
         //trivial cases
         if (count1 == 0 && count2 > 0) {
             //this wins
-            gFunction[0][0] = BigDecimal.ONE;
+            gFunction[0][0] = BigInteger.ONE;
         }
         else if (count1 > 0 && count2 == 0) {
             //p wins
-            gFunction[1][0] = BigDecimal.ONE;
+            gFunction[1][0] = BigInteger.ONE;
         }
         else if (count1 == 0 && count2 == 0) {
             //tie game
-            gFunction[2][0] = BigDecimal.ONE;
+            gFunction[2][0] = BigInteger.ONE;
         }
         else if (isSamePosition(p)) {
             //identical positions guarantee a tie
-            gFunction[2][0] = BigDecimal.ONE;
+            gFunction[2][0] = BigInteger.ONE;
         }
         else {
             //non-trivial case: game has not ended, and no outcome is guaranteed
             //copy variables
-            BigDecimal[][] g_sub;
+            BigInteger[][] g_sub;
             Position pos1, pos2;
 
             //loop through each dock
@@ -244,11 +232,8 @@ public class Position {
 
                     //add to current value of gFunction. use LCM to add and GCD to put into lowest terms.
                     //gFunction[0] denominator
-                    gInt[0] = gFunction[0][1].toBigInteger(); //denominator 1
-                    gInt[1] = g_sub[0][1].toBigInteger(); //denominator 2
-                    tempInt = gInt[0].gcd(gInt[1]); //gcd as integer
-                    tempDec = new BigDecimal(tempInt); //gcd as float
-                    gFunction[0][1] = gFunction[0][1].multiply(g_sub[0][1]).divide(tempDec); //lcm = denominator1 * denominator2 / gcd
+                    tempInt = gFunction[0][0].gcd(gFunction[0][1]); //gcd as integer
+                    gFunction[0][1] = gFunction[0][1].multiply(g_sub[0][1]).divide(tempInt); //lcm = denominator1 * denominator2 / gcd
 
                     //gFunction[0] numerator
                 }

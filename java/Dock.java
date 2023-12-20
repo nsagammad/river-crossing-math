@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 
 public class Dock {
@@ -7,8 +8,8 @@ public class Dock {
     private boolean usable;
 
     //probabilities per dock.
-    private static ArrayList<BigDecimal> probNumerator = new ArrayList<BigDecimal>();
-    private static BigDecimal probDenominator = BigDecimal.ONE;
+    private static ArrayList<BigInteger> probNumerator = new ArrayList<BigInteger>();
+    private static BigInteger probDenominator = BigInteger.ONE;
 
     //constructor with only useValue
     public Dock(boolean useValue) {
@@ -37,7 +38,9 @@ public class Dock {
     //dock counting starts at 0.
     public static BigDecimal getProbability(int d) {
         if (!probNumerator.isEmpty() && d < probNumerator.size()) {
-            return probNumerator.get(d).divide(probDenominator, MathContext.DECIMAL128);
+            BigDecimal num = new BigDecimal(probNumerator.get(d));
+            BigDecimal den = new BigDecimal(probDenominator);
+            return num.divide(den, MathContext.DECIMAL128);
         }   
         else {
             return BigDecimal.ZERO;
@@ -45,13 +48,13 @@ public class Dock {
     }
 
     //returns the probability denominator.
-    public static BigDecimal getProbabilityDenominator() {
+    public static BigInteger getProbabilityDenominator() {
         return probDenominator;
     }
 
     //returns the probability numerator.
     //dock counting starts at 0.
-    public static BigDecimal getProbabilityNumerator(int d) {
+    public static BigInteger getProbabilityNumerator(int d) {
         return probNumerator.get(d);
     }
 
@@ -85,10 +88,11 @@ public class Dock {
         else if (d == 1) {
             probNumerator.clear();
             for (int i = 0; i < f; i++) {
-                probNumerator.add(BigDecimal.ONE);
+                probNumerator.add(BigInteger.ONE);
             }
 
-            probDenominator = probDenominator.multiply(new BigDecimal(f));
+            Integer den = f;
+            probDenominator = probDenominator.multiply(new BigInteger(den.toString()));
         }
         //non-trivial case: more than 1 die
         else if (d > 1) {
@@ -96,7 +100,7 @@ public class Dock {
             setupProbabilities(d - 1, f);
 
             //copy over previous values
-            ArrayList<BigDecimal> probCopy = new ArrayList<BigDecimal>();
+            ArrayList<BigInteger> probCopy = new ArrayList<BigInteger>();
             for (int i = 0; i < probNumerator.size(); i++) {
                 probCopy.add(probNumerator.get(i));
             }
@@ -104,7 +108,7 @@ public class Dock {
             //clear probabilities
             probNumerator.clear();
             //add 0 to first index
-            probNumerator.add(BigDecimal.ZERO);
+            probNumerator.add(BigInteger.ZERO);
 
             //add the values of probcopy
             for (int i = 1; i <= f; i++) { //iterate from 1 to f
@@ -121,7 +125,8 @@ public class Dock {
             }
             
             //update denominator
-            BigDecimal subDenominator = new BigDecimal(f);
+            Integer subden = f;
+            BigInteger subDenominator = new BigInteger(subden.toString());
             probDenominator = probDenominator.multiply(subDenominator);
         }
     }
