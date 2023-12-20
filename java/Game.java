@@ -1,5 +1,6 @@
 import java.util.Scanner;
 import java.util.Random;
+import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.math.MathContext;
 
@@ -166,8 +167,9 @@ public class Game {
     public void playGame() {
         int count1 = position1.getCount();
         int count2 = position2.getCount();
-        BigDecimal ed1[] = {BigDecimal.ZERO, BigDecimal.ZERO};
-        BigDecimal ed2[] = {BigDecimal.ZERO, BigDecimal.ZERO};
+        BigInteger ed1[] = {BigInteger.ZERO, BigInteger.ZERO};
+        BigInteger ed2[] = {BigInteger.ZERO, BigInteger.ZERO};
+        BigDecimal edholder[] = {BigDecimal.ONE, BigDecimal.ONE};
         double edsim1[] = {0d, 0d};
         double edsim2[] = {0d, 0d};
 
@@ -187,14 +189,17 @@ public class Game {
                     System.out.println(removed2 + " chips removed from Player 2.");
                 }
                 else if (gameInput.equals("E")) {
-                    System.out.println("Expected Duration for Player 1 (Recursion): " + ed1[0].divide(ed1[1], MathContext.DECIMAL128).toString());
+                    System.out.println("Expected Duration for Player 1 (Recursion): " + edholder[0].toString());
+                    System.out.println("    Fractional Equivalent: " + ed1[0].toString() + "/" + ed1[1].toString());
                     if (edsim1[1] != 0d) {
                         System.out.println("Expected Duration for Player 1 (Simulation): " + (edsim1[0] / edsim1[1]));
                     }
                     else {
                         System.out.println("Expected Duration for Player 1 (Simulation): Infinite");
                     }
-                    System.out.println("Expected Duration for Player 2 (Recursion): " + ed2[0].divide(ed2[1], MathContext.DECIMAL128).toString());
+                    System.out.println("-----");
+                    System.out.println("Expected Duration for Player 2 (Recursion): " + edholder[1].toString());
+                    System.out.println("    Fractional Equivalent: " + ed2[0].toString() + "/" + ed2[1].toString());
                     if (edsim2[1] != 0d) {
                         System.out.println("Expected Duration for Player 1 (Simulation): " + (edsim2[0] / edsim2[1]));
                     }
@@ -221,7 +226,9 @@ public class Game {
             //input E: expected duration
             else if (gameInput.equals("E")) {
                 ed1 = position1.expectedDurationRecursive();
+                edholder[0] = new BigDecimal(ed1[0]).divide(new BigDecimal(ed1[1]), MathContext.DECIMAL64);
                 ed2 = position2.expectedDurationRecursive();
+                edholder[1] = new BigDecimal(ed2[0]).divide(new BigDecimal(ed2[1]), MathContext.DECIMAL64);
                 edsim1 = position1.expectedDurationSimulation(10000);
                 edsim2 = position2.expectedDurationSimulation(10000);
             }
