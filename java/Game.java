@@ -172,6 +172,8 @@ public class Game {
         BigDecimal edholder[] = {BigDecimal.ONE, BigDecimal.ONE};
         double edsim1[] = {0d, 0d};
         double edsim2[] = {0d, 0d};
+        BigInteger gfunc[][] = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
+        BigDecimal gholder[] = {BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE};
 
         System.out.println("-----");
         displayBoard(position1, position2);
@@ -180,7 +182,7 @@ public class Game {
         while (count1 > 0 && count2 > 0) {
             //check for invalid input
             do {
-                if (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X")) {
+                if (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X") && !gameInput.equals("G")) {
                     System.out.println("Invalid Input.");
                 }
                 if (rolls >= 1 && gameInput.equals("R")) {
@@ -207,11 +209,18 @@ public class Game {
                         System.out.println("Expected Duration for Player 1 (Simulation): Infinite");
                     }
                 }
+                else if (gameInput.equals("G")) {
+                    System.out.println("g(A, B) = {" + gholder[0].toString() + ", " + gholder[1].toString() + ", " + gholder[2].toString() + "}");
+                    System.out.println("Fractional equivalents:");
+                    System.out.println("p(A wins) = " + gfunc[0][0] + "/" + gfunc[0][1]);
+                    System.out.println("p(B wins) = " + gfunc[1][0] + "/" + gfunc[1][1]);
+                    System.out.println("p(Tie Game) = " + gfunc[2][0] + "/" + gfunc[2][1]);
+                }
                 System.out.println("Type [R] to roll the dice!");
                 gameInput = inputScanner.nextLine();
                 gameInput = gameInput.toUpperCase();
                 gameInput = gameInput.substring(0, 1);
-            } while (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X"));
+            } while (!gameInput.equals("R") && !gameInput.equals("E") && !gameInput.equals("X") && !gameInput.equals("G"));
 
             //once we have the R, roll the dice
             if (gameInput.equals("R")) {
@@ -231,6 +240,13 @@ public class Game {
                 edholder[1] = new BigDecimal(ed2[0]).divide(new BigDecimal(ed2[1]), MathContext.DECIMAL64);
                 edsim1 = position1.expectedDurationSimulation(10000);
                 edsim2 = position2.expectedDurationSimulation(10000);
+            }
+            //input G: g function
+            else if (gameInput.equals("G")) {
+                gfunc = position1.gFunctionRecursive(position2);
+                gholder[0] = new BigDecimal(gfunc[0][0]).divide(new BigDecimal(gfunc[0][1]), MathContext.DECIMAL64);
+                gholder[1] = new BigDecimal(gfunc[1][0]).divide(new BigDecimal(gfunc[1][1]), MathContext.DECIMAL64);
+                gholder[2] = new BigDecimal(gfunc[2][0]).divide(new BigDecimal(gfunc[2][1]), MathContext.DECIMAL64);
             }
             //input X: exit game
             else if (gameInput.equals("X")) {
