@@ -255,7 +255,7 @@ public class Position {
 
                     //remove a chip from dock i
                     pos1.removeChip(i, 1);
-                    pos2.removeChip(i, 2);
+                    pos2.removeChip(i, 1);
 
                     //call gFunctionRecursive on copied positions
                     g_sub = pos1.gFunctionRecursive(pos2);
@@ -268,11 +268,58 @@ public class Position {
 
                     //gFunction[0] numerator
                     gFunction[0][0] = gFunction[0][0].multiply(gFunction[0][1]).divide(tempInt[1]); //numerator = lcm / denominator1 * numerator1
-                    g_sub[0][0] = g_sub[0][0].multiply(gFunction[0][1]).divide(g_sub[0][1]);
+                    g_sub[0][0] = g_sub[0][0].multiply(gFunction[0][1]).divide(g_sub[0][1]); //numerator = lcm / denominator2 * numerator2
+                    gFunction[0][0] = gFunction[0][0].add(g_sub[0][0]); //add the two numerators
+
+                    //gFunction[1] denominator
+                    tempInt[0] = gFunction[1][1].gcd(g_sub[1][1]); //gcd as integer
+                    tempInt[1] = gFunction[1][1]; //hold the value of denominator
+                    gFunction[1][1] = gFunction[1][1].multiply(g_sub[1][1]).divide(tempInt[0]); //lcm = denominator1 * denominator2 / gcd
+
+                    //gFunction[1] numerator
+                    gFunction[1][0] = gFunction[1][0].multiply(gFunction[1][1]).divide(tempInt[1]); //numerator = lcm / denominator1 * numerator1
+                    g_sub[1][0] = g_sub[1][0].multiply(gFunction[1][1]).divide(g_sub[1][1]); //numerator = lcm / denominator2 * numerator2
+                    gFunction[1][0] = gFunction[1][0].add(g_sub[1][0]); //add the two numerators
+
+                    //gFunction[2] denominator
+                    tempInt[0] = gFunction[2][1].gcd(g_sub[2][1]); //gcd as integer
+                    tempInt[1] = gFunction[2][1]; //hold the value of denominator
+                    gFunction[2][1] = gFunction[2][1].multiply(g_sub[2][1]).divide(tempInt[0]); //lcm = denominator1 * denominator2 / gcd
+
+                    //gFunction[2] numerator
+                    gFunction[2][0] = gFunction[2][0].multiply(gFunction[2][1]).divide(tempInt[1]); //numerator = lcm / denominator1 * numerator1
+                    g_sub[2][0] = g_sub[2][0].multiply(gFunction[2][1]).divide(g_sub[2][1]); //numerator = lcm / denominator2 * numerator2
+                    gFunction[2][0] = gFunction[2][0].add(g_sub[2][0]); //add the two numerators
                 }
             }
 
             //divide by sumProb
+            //gFunction[0]
+            gFunction[0][0] = gFunction[0][0].multiply(Dock.getProbabilityDenominator());
+            gFunction[0][1] = gFunction[0][1].multiply(sumProb);
+
+            //put into lowest terms
+            tempInt[0] = gFunction[0][0].gcd(gFunction[0][1]); //get gcd
+            gFunction[0][0] = gFunction[0][0].divide(tempInt[0]); //divide by gcd
+            gFunction[0][1] = gFunction[0][1].divide(tempInt[0]); //divide by gcd
+
+            //gFunction[1]
+            gFunction[1][0] = gFunction[1][0].multiply(Dock.getProbabilityDenominator());
+            gFunction[1][1] = gFunction[1][1].multiply(sumProb);
+
+            //put into lowest terms
+            tempInt[0] = gFunction[1][0].gcd(gFunction[1][1]); //get gcd
+            gFunction[1][0] = gFunction[1][0].divide(tempInt[0]); //divide by gcd
+            gFunction[1][1] = gFunction[1][1].divide(tempInt[0]); //divide by gcd
+
+            //gFunction[2]
+            gFunction[2][0] = gFunction[2][0].multiply(Dock.getProbabilityDenominator());
+            gFunction[2][1] = gFunction[2][1].multiply(sumProb);
+
+            //put into lowest terms
+            tempInt[0] = gFunction[2][0].gcd(gFunction[2][1]); //get gcd
+            gFunction[2][0] = gFunction[2][0].divide(tempInt[0]); //divide by gcd
+            gFunction[2][1] = gFunction[2][1].divide(tempInt[0]); //divide by gcd
         }
 
         return gFunction;
