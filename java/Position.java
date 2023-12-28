@@ -244,11 +244,16 @@ public class Position {
             Position pos1, pos2;
 
             //loop through each dock
+            //get sumProb
             for (int i = 0; i < currentDocks; i++) {
                 if (getChips(i) > 0 || p.getChips(i) > 0) {
-                    //add to sumProb
+                    //add prob[i] to sumProb
                     sumProb = sumProb.add(Dock.getProbabilityNumerator(i));
+                }
+            }
 
+            for (int i = 0; i < currentDocks; i++) {
+                if (getChips(i) > 0 || p.getChips(i) > 0) {
                     //copy this and p into pos1 and pos2
                     pos1 = new Position(this);
                     pos2 = new Position(p);
@@ -259,6 +264,16 @@ public class Position {
 
                     //call gFunctionRecursive on copied positions
                     g_sub = pos1.gFunctionRecursive(pos2);
+
+                    //multiply g_sub by prob[i]/sumProb
+                    g_sub[0][0] = g_sub[0][0].multiply(Dock.getProbabilityNumerator(i));
+                    g_sub[0][1] = g_sub[0][1].multiply(sumProb);
+
+                    g_sub[1][0] = g_sub[1][0].multiply(Dock.getProbabilityNumerator(i));
+                    g_sub[1][1] = g_sub[1][1].multiply(sumProb);
+
+                    g_sub[2][0] = g_sub[2][0].multiply(Dock.getProbabilityNumerator(i));
+                    g_sub[2][1] = g_sub[2][1].multiply(sumProb);
 
                     //add to current value of gFunction. use LCM to add and GCD to put into lowest terms.
                     //gFunction[0] denominator
@@ -293,29 +308,19 @@ public class Position {
                 }
             }
 
-            //divide by sumProb
             //gFunction[0]
-            gFunction[0][0] = gFunction[0][0].multiply(Dock.getProbabilityDenominator());
-            gFunction[0][1] = gFunction[0][1].multiply(sumProb);
-
             //put into lowest terms
             tempInt[0] = gFunction[0][0].gcd(gFunction[0][1]); //get gcd
             gFunction[0][0] = gFunction[0][0].divide(tempInt[0]); //divide by gcd
             gFunction[0][1] = gFunction[0][1].divide(tempInt[0]); //divide by gcd
 
             //gFunction[1]
-            gFunction[1][0] = gFunction[1][0].multiply(Dock.getProbabilityDenominator());
-            gFunction[1][1] = gFunction[1][1].multiply(sumProb);
-
             //put into lowest terms
             tempInt[0] = gFunction[1][0].gcd(gFunction[1][1]); //get gcd
             gFunction[1][0] = gFunction[1][0].divide(tempInt[0]); //divide by gcd
             gFunction[1][1] = gFunction[1][1].divide(tempInt[0]); //divide by gcd
 
             //gFunction[2]
-            gFunction[2][0] = gFunction[2][0].multiply(Dock.getProbabilityDenominator());
-            gFunction[2][1] = gFunction[2][1].multiply(sumProb);
-
             //put into lowest terms
             tempInt[0] = gFunction[2][0].gcd(gFunction[2][1]); //get gcd
             gFunction[2][0] = gFunction[2][0].divide(tempInt[0]); //divide by gcd
