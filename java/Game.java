@@ -174,6 +174,8 @@ public class Game {
         double edsim2[] = {0d, 0d};
         BigInteger gfunc[][] = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
         BigDecimal gholder[] = {BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE};
+        BigInteger gsimfunc[][] = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
+        BigDecimal gsimholder[] = {BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE};
 
         System.out.println("-----");
         displayBoard(position1, position2);
@@ -215,6 +217,7 @@ public class Game {
                     System.out.println("p(A wins) = " + gfunc[0][0] + "/" + gfunc[0][1]);
                     System.out.println("p(B wins) = " + gfunc[1][0] + "/" + gfunc[1][1]);
                     System.out.println("p(Tie Game) = " + gfunc[2][0] + "/" + gfunc[2][1]);
+                    System.out.println("g(A, B) using Simulation = {" + gsimholder[0].toString() + ", " + gsimholder[1].toString() + ", " + gsimholder[2].toString() + "}");
                 }
                 System.out.println("Type [R] to roll the dice!");
                 gameInput = inputScanner.nextLine();
@@ -247,6 +250,10 @@ public class Game {
                 gholder[0] = new BigDecimal(gfunc[0][0]).divide(new BigDecimal(gfunc[0][1]), MathContext.DECIMAL64);
                 gholder[1] = new BigDecimal(gfunc[1][0]).divide(new BigDecimal(gfunc[1][1]), MathContext.DECIMAL64);
                 gholder[2] = new BigDecimal(gfunc[2][0]).divide(new BigDecimal(gfunc[2][1]), MathContext.DECIMAL64);
+                gsimfunc = position1.gFunctionSimulation(position2, 100000);
+                gsimholder[0] = new BigDecimal(gsimfunc[0][0]).divide(new BigDecimal(gsimfunc[0][1]), MathContext.DECIMAL64);
+                gsimholder[1] = new BigDecimal(gsimfunc[1][0]).divide(new BigDecimal(gsimfunc[1][1]), MathContext.DECIMAL64);
+                gsimholder[2] = new BigDecimal(gsimfunc[2][0]).divide(new BigDecimal(gsimfunc[2][1]), MathContext.DECIMAL64);
             }
             //input X: exit game
             else if (gameInput.equals("X")) {
