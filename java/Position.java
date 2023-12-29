@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.math.BigInteger;
+import java.math.BigDecimal;
 
 public class Position {
     //character representations of numbers 1 through 35.
@@ -213,6 +214,38 @@ public class Position {
     }
 
     //returns the g Function values for the position and its opponent.
+    //uses the non-recursive method.
+    public BigInteger[][] gFunctionNonRecursive(Position p) {
+        BigInteger[][] gFunction = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
+        int count1 = getCount();
+        int count2 = p.getCount();
+
+        //trivial cases
+        if (count1 == 0 && count2 > 0) {
+            //this wins
+            gFunction[0][0] = BigInteger.ONE;
+        }
+        else if (count1 > 0 && count2 == 0) {
+            //p wins
+            gFunction[1][0] = BigInteger.ONE;
+        }
+        else if (count1 == 0 && count2 == 0) {
+            //tie game
+            gFunction[2][0] = BigInteger.ONE;
+        }
+        else if (isSamePosition(p)) {
+            //identical positions guarantee a tie
+            gFunction[2][0] = BigInteger.ONE;
+        }
+        //non-trivial case: more chips in a position
+        else {
+
+        }
+
+        return gFunction;
+    }
+
+    //returns the g Function values for the position and its opponent.
     public BigInteger[][] gFunctionRecursive(Position p) {
         BigInteger[][] gFunction = {{BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}, {BigInteger.ZERO, BigInteger.ONE}};
         int count1 = getCount();
@@ -325,6 +358,50 @@ public class Position {
             tempInt[0] = gFunction[2][0].gcd(gFunction[2][1]); //get gcd
             gFunction[2][0] = gFunction[2][0].divide(tempInt[0]); //divide by gcd
             gFunction[2][1] = gFunction[2][1].divide(tempInt[0]); //divide by gcd
+        }
+
+        return gFunction;
+    }
+
+    //returns gFunction values for this position and its opponent using simulation method.
+    public BigInteger[][] gFunctionSimulation(Position p, int numGames) {
+        BigInteger interval = new BigDecimal(numGames).toBigInteger();
+        BigInteger[][] gFunction = {{BigInteger.ZERO, interval}, {BigInteger.ZERO, interval}, {BigInteger.ZERO, interval}};
+        int diceRoll = 0;
+        int count1 = 0;
+        int count2 = 0;
+        Position pos1, pos2;
+
+        //trivial case: same positions
+        if (isSamePosition(p)) {
+            gFunction[2][0] = interval;
+        }
+        //non-trivial case: not same positions
+        else {
+            for (int i = 0; i < numGames; i++) {
+                pos1 = new Position(this);
+                pos2 = new Position(p);
+
+                while (pos1.getCount() > 0 && pos2.getCount() > 0) {
+                    diceRoll = Game.rollDice();
+                    pos1.removeChip(diceRoll - 1, 1);
+                    pos2.removeChip(diceRoll - 1, 1);
+                }
+
+                count1 = pos1.getCount();
+                count2 = pos2.getCount();
+
+                //get result
+                if (count1 == 0 && count2 > 0) {
+                    gFunction[0][0] = gFunction[0][0].add(BigInteger.ONE);
+                }
+                else if (count1 > 0 && count2 == 0) {
+                    gFunction[1][0] = gFunction[1][0].add(BigInteger.ONE);
+                }
+                else if (count1 == 0 && count2 == 0) {
+                    gFunction[2][0] = gFunction[2][0].add(BigInteger.ONE);
+                }
+            }
         }
 
         return gFunction;
